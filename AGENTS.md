@@ -2,9 +2,9 @@
 
 ## Project Structure & Module Organization
 
-This repository is a static, single-page web app. `index.html` contains markup and loads supporting assets. Styles live in `css/styles.css`, app behavior in `js/app.js`, and spell data in `js/spells.js`. Audio assets are under `sounds/`; `sounds/pwk.mp3` is shared, and `sounds/wizard_male/` plus `sounds/wizard_female/` contain school-specific files such as `abjuration.mp3`.
+This is a static, single-page web app. `index.html` contains markup and loads assets. Styles live in `css/styles.css`, behavior in `js/app.js`, spell data in `js/spells.js`, and the normalized SQLite database in `db/`. Audio assets are under `sounds/`; `sounds/pwk.mp3` is shared, and `sounds/wizard_male/` plus `sounds/wizard_female/` contain school-specific files.
 
-Keep markup in `index.html`, visual changes in `css/styles.css`, behavior in `js/app.js`, and spell updates in `js/spells.js`. Add media under `sounds/` using lowercase, descriptive filenames, and preserve the school-name pattern.
+Keep markup in `index.html`, visual changes in `css/styles.css`, behavior in `js/app.js`, and spell updates in `js/spells.js`. Regenerate `db/spells.db` after spell data changes. Add media under `sounds/` with lowercase names.
 
 ## Build, Test, and Development Commands
 
@@ -20,11 +20,17 @@ For a local HTTP server, use any simple static server from the repository root, 
 python -m http.server 8000
 ```
 
-Then open `http://localhost:8000`. Use this option when browser security rules affect local files or audio behavior.
+Then open `http://localhost:8000`. Use this when browser security rules affect local files or audio.
+
+Regenerate the SQLite spell database:
+
+```powershell
+C:\python\313\python.exe db\seed_spells.py
+```
 
 ## Coding Style & Naming Conventions
 
-Use the existing inline style: CSS custom properties in `:root`, compact selectors, and camelCase JavaScript functions such as `showCreateCharacterPage()` and `toggleSounds()`. Keep DOM IDs descriptive and stable because many controls use inline event handlers. Prefer small, focused functions over adding large blocks inside event attributes.
+Use the existing style: CSS custom properties in `:root`, compact selectors, and camelCase JavaScript functions such as `showCreateCharacterPage()` and `toggleSounds()`. Keep DOM IDs descriptive and stable because many controls use inline event handlers. Prefer small, focused functions over adding large blocks inside event attributes.
 
 Use two or four spaces consistently within the area being edited, matching nearby code. Avoid renaming existing IDs, functions, or asset files unless all references are updated.
 
