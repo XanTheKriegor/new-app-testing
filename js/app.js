@@ -785,6 +785,53 @@ function showSpellTab(tab){
         localStorage.setItem("characters", JSON.stringify(characters));
     }
 
+    window.exportData = function(){
+        const data = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            characters: JSON.parse(localStorage.getItem('characters') || '[]'),
+            knownSpells: JSON.parse(localStorage.getItem('knownSpells') || '{}'),
+            preparedSpells: JSON.parse(localStorage.getItem('preparedSpells') || '{}'),
+            customSpellSounds: JSON.parse(localStorage.getItem('customSpellSounds') || '{}')
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'spell-tracker-backup-' + new Date().toISOString().slice(0,10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    window.importData = function(event){
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e){
+            try {
+                const data = JSON.parse(e.target.result);
+                if(!data.characters) throw new Error('Neplatný soubor');
+
+                if(!confirm('Import přepíše všechna stávající data. Pokračovat?')) {
+                    event.target.value = '';
+                    return;
+                }
+
+                localStorage.setItem('characters', JSON.stringify(data.characters || []));
+                localStorage.setItem('knownSpells', JSON.stringify(data.knownSpells || {}));
+                localStorage.setItem('preparedSpells', JSON.stringify(data.preparedSpells || {}));
+                localStorage.setItem('customSpellSounds', JSON.stringify(data.customSpellSounds || {}));
+
+                renderCharacters();
+                alert('Import úspěšný! Načteno ' + data.characters.length + ' postav.');
+            } catch(err) {
+                alert('Chyba při importu: ' + err.message);
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    };
+
     // CREATE CHARACTER
 
     function createCharacter(){

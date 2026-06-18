@@ -21,6 +21,12 @@
             + New Character
         </button>
 
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-gray" onclick="exportData()" style="margin-top:0;flex:1;">⬇ Export</button>
+            <button class="btn btn-gray" onclick="document.getElementById('importFileInput').click()" style="margin-top:0;flex:1;">⬆ Import</button>
+            <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importData(event)">
+        </div>
+
         <div id="characterList" style="margin-top:20px;"><div class="character-card">
                 <div>
                     <div class="character-card-name">Zurghul</div>
