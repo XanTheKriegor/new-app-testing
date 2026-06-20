@@ -14,6 +14,11 @@
     <!-- MAIN PAGE -->
     <div id="mainPage">
 
+        <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
+            <button id="themeLightBtn" class="btn btn-gray btn-small" onclick="setTheme('light')" style="border-radius:20px;">☀ Light</button>
+            <button id="themeDarkBtn" class="btn btn-gray btn-small" onclick="setTheme('dark')" style="border-radius:20px;">🌙 Dark</button>
+        </div>
+
         <h1>✦ Xan's Magnificent Spell Tracker ✦</h1>
         <div class="divider">⋆ ⋆ ⋆</div>
 
@@ -24,6 +29,7 @@
         <div style="display:flex;gap:8px;margin-top:10px;">
             <button class="btn btn-gray" onclick="exportData()" style="margin-top:0;flex:1;">⬇ Export</button>
             <button class="btn btn-gray" onclick="document.getElementById('importFileInput').click()" style="margin-top:0;flex:1;">⬆ Import</button>
+            <button class="btn btn-gray" onclick="openHelpModal()" style="margin-top:0;flex:0 0 auto;width:auto;padding:10px 16px;">❓</button>
             <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importData(event)">
         </div>
 
@@ -113,15 +119,10 @@
                 <option>Chaotic Evil</option>
             </select>
 
-            <label>Sound Set <span style="color:#aaa;font-weight:normal;font-size:13px;">(volitelné)</span></label>
+            <label>Sound Set <span style="color:#aaa;font-weight:normal;font-size:13px;">(optional)</span></label>
             <select id="characterSoundSet">
-                <option value="">Žádná</option>
+                <option value="">None</option>
                 <option value="wizard_male">Wizard Male</option>
-                <option value="wizard_female">Wizard Female</option>
-                <option value="cleric_male">Cleric Male</option>
-                <option value="cleric_female">Cleric Female</option>
-                <option value="warlock_male">Warlock Male</option>
-                <option value="warlock_female">Warlock Female</option>
             </select>
 
             <div id="errorMessage" class="message"></div>
@@ -170,7 +171,7 @@
     <div id="spellbookPage" class="hidden">
         <h2 id="spellbookTitle">Spellbook</h2>
         <div class="card">
-            <h3 style="text-align:center;margin-bottom:10px;">Zbývá spellslotů:</h3>
+            <h3 style="text-align:center;margin-bottom:10px;">Remaining Spell Slots:</h3>
             <div class="spellbook-actions-row" style="margin-bottom:10px;">
                 <button class="btn btn-gold" onclick="longRest()" style="margin-top:0;">🌙 Long Rest</button>
                 <button class="btn btn-gray" onclick="shortRest()" style="margin-top:0;">☕ Short Rest</button>
@@ -178,11 +179,13 @@
             <div id="spellslotTable"></div>
             <div class="spellbook-actions">
                 <div class="spellbook-actions-row">
-                    <button class="btn btn-gray" id="soundToggleBtn" onclick="toggleSounds()">🔊 Sounds On</button>
+                    <button class="btn btn-gray" id="soundToggleBtn" onclick="toggleSounds()">🔇 Sounds Off</button>
                     <button class="btn btn-gray" id="soundsFolderBtn" onclick="pickSoundsFolder()">📁 Sounds</button>
                     <button class="btn btn-gray" onclick="backToCharacterFromSpellbook()">← Back</button>
                 </div>
             </div>
+
+            <div id="concentrationBanner" class="concentration-banner hidden"></div>
 
             <div class="spell-tabs">
                 <button id="preparedTabBtn" class="btn btn-green" onclick="showSpellTab(&#39;prepared&#39;)">Prepared Spells</button>
@@ -223,6 +226,7 @@
 
             <div style="display:flex;gap:8px;margin-top:8px;">
                 <button class="btn btn-gray" onclick="toggleFilterPanel()" id="filterToggleBtn" style="flex:1;">⚙ Filters</button>
+                <button class="btn btn-gray" onclick="toggleDetailsDefault()" id="detailsDefaultBtn" style="flex:1;">📖 Show Details</button>
                 <button class="btn btn-red" onclick="clearFilters()" id="filterClearBtn" style="flex:1;display:none;">✕ Clear Filters</button>
             </div>
 
@@ -238,7 +242,7 @@
 <script src="js/spells.js"></script>
 <script src="js/app.js"></script>
 
-<!-- Modal pro výběr spell efektu -->
+<!-- Modal for selecting spell sound effect -->
 <div id="spellSoundModal" class="modal-overlay">
     <div class="modal-box">
         <div class="modal-title" id="spellSoundModalTitle"></div>
@@ -249,7 +253,7 @@
     </div>
 </div>
 
-<!-- Modal pro výběr spell slotu -->
+<!-- Modal for selecting spell slot -->
 <div id="castModal" class="modal-overlay">
     <div class="modal-box">
         <div class="modal-title" id="castModalTitle"></div>
@@ -259,5 +263,93 @@
     </div>
 </div>
 
+
+<!-- Help/guide modal -->
+<div id="helpModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:480px;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-title">✦ How to Use ✦</div>
+        <div style="overflow-y:auto;flex:1;text-align:left;padding-right:4px;">
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Creating a character</div>
+                <div class="help-body hidden">
+                    Tap <strong>+ New Character</strong> and fill in name, class, level, race and alignment. Sound Set is optional, you can leave it blank and set it up later. Once saved the character shows up on the main screen, tap it any time to open it again.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Spell slots</div>
+                <div class="help-body hidden">
+                    Open a character and tap <strong>Spellbook</strong>. Each row shows the slots for that level as dots, tap one to mark it used or available again if you need to fix something by hand. <strong>Long Rest</strong> refills everything. <strong>Short Rest</strong> only helps Warlocks, since Pact Magic is the only thing that comes back early. Slots get recalculated automatically whenever you level up a character.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Learning and preparing spells</div>
+                <div class="help-body hidden">
+                    <strong>All Spells</strong> is the full database, filtered to your class by default. Tap <strong>Add to Book</strong> on anything you want to learn and it moves into <strong>Known Spells</strong>. From there tap <strong>Prepare</strong> to bring it into <strong>Prepared Spells</strong>, which is the list you actually cast from during play.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Casting</div>
+                <div class="help-body hidden">
+                    Hit <strong>Cast</strong> on a prepared spell. If it can be cast with more than one slot level you'll get asked which one to burn. Cantrips skip slots entirely. If nothing's free at a high enough level you'll just get a heads up instead of it silently failing.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Spell card details</div>
+                <div class="help-body hidden">
+                    Cards start collapsed, showing just the name, level and school. Tap the name to expand range, duration, casting time, components, source and classes. Tap <strong>Description</strong> separately to read the full text, it's independent from the rest of the details. If you'd rather have everything expanded by default, there's a <strong>Details Off/On</strong> toggle next to the filter button in the spellbook that applies to every card at once.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Pinning spells</div>
+                <div class="help-body hidden">
+                    Tap the star on a prepared spell to pin it. Pinned spells jump to the top of the Prepared list so the ones you actually rely on in combat aren't buried under cantrips and rituals. Tap the star again to unpin.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Concentration</div>
+                <div class="help-body hidden">
+                    There's a small bar above the spell tabs that shows what you're currently concentrating on, or tells you there's nothing active. Casting a new concentration spell while one is already running will ask you to confirm before swapping it out, just like the actual rules. You can also break it manually any time with the button on the bar.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Search and filters</div>
+                <div class="help-body hidden">
+                    The search box matches by name. Tap <strong>⚙ Filters</strong> for level, school, class, source book, ritual and concentration, all of which stack together and apply across Prepared, Known and All Spells alike.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Spell sounds</div>
+                <div class="help-body hidden">
+                    Set a <strong>Sound Set</strong> on a character for a default sound per school of magic whenever you cast. Tap <strong>📁 Sounds</strong> once per session to point the app at your local sounds folder. Any individual prepared spell can also get its own custom sound through the 🎵 button on its card, which takes priority over the default.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Light and dark mode</div>
+                <div class="help-body hidden">
+                    Switch between the two with the buttons above the title on the main screen. The choice is saved and applies everywhere in the app, not just the page you're on.
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-header" onclick="toggleHelpSection(this)">▶ Backup and transfer</div>
+                <div class="help-body hidden">
+                    Everything lives in your browser's local storage, which doesn't follow you to a new device or browser on its own. Use <strong>⬇ Export</strong> on the main screen to save a backup file, and <strong>⬆ Import</strong> wherever you want it restored. Characters, known and prepared spells, slot states and custom sounds all come back with it.
+                </div>
+            </div>
+
+        </div>
+        <button class="btn btn-gray" style="margin-top:16px;" onclick="closeHelpModal()">Close</button>
+    </div>
+</div>
 
 </body></html>

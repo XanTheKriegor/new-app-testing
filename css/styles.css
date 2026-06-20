@@ -24,6 +24,30 @@
             --school-transmutation: #6b6b2e;
         }
 
+        :root[data-theme="light"]{
+            --bg:          #ece4d3;
+            --bg2:         #f5efe1;
+            --bg3:         #ffffff;
+            --bg4:         #e8ddc4;
+            --gold:        #9a7320;
+            --gold-dim:    #b8923f;
+            --gold-light:  #7a5810;
+            --red:         #a33a3a;
+            --red-dim:     #c75c5c;
+            --text:        #3a3024;
+            --text-dim:    #6b5d47;
+            --border:      #d4c5a3;
+            --border-gold: #c4a655;
+            --school-abjuration:    #6f9ac2;
+            --school-conjuration:   #9a6fc2;
+            --school-divination:    #6fc29a;
+            --school-enchantment:   #c26f9a;
+            --school-evocation:     #c2906f;
+            --school-illusion:      #6fb0c2;
+            --school-necromancy:    #6f9a6f;
+            --school-transmutation: #b0b06f;
+        }
+
         *{ box-sizing:border-box; margin:0; padding:0; }
 
         body{
@@ -41,6 +65,10 @@
         }
 
         .container{ width:100%; max-width:600px; }
+
+        :root[data-theme="light"] h1{
+            text-shadow: none;
+        }
 
         /* TYPOGRAPHY */
         h1{
@@ -96,13 +124,13 @@
         }
         .btn-green{
             background: linear-gradient(135deg, #2d4a1e, #3d6b2e);
-            color: var(--gold-light);
+            color: #f0e6c8;
             border-color: #4a7a35;
         }
         .btn-green:hover{ background: linear-gradient(135deg, #3d6b2e, #4a8038); }
         .btn-gold{
             background: linear-gradient(135deg, #3d2e0f, #5a4318);
-            color: var(--gold-light);
+            color: #f0e6c8;
             border-color: var(--gold-dim);
         }
         .btn-gold:hover{ background: linear-gradient(135deg, #5a4318, #6b5020); }
@@ -114,7 +142,7 @@
         .btn-gray:hover{ background: var(--bg4); color: var(--text); }
         .btn-red{
             background: linear-gradient(135deg, var(--red-dim), var(--red));
-            color: #ffaaaa;
+            color: #ffe8e8;
             border-color: #7a2525;
         }
         .btn-red:hover{ background: linear-gradient(135deg, var(--red), #9a3535); }
@@ -330,7 +358,7 @@
             background: var(--bg3);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 12px 14px;
+            padding: 10px 12px;
             margin-bottom: 8px;
             position: relative;
             overflow: hidden;
@@ -352,43 +380,71 @@
         .spell-card[data-school="Necromancy"]::before    { background: var(--school-necromancy); }
         .spell-card[data-school="Transmutation"]::before { background: var(--school-transmutation); }
 
+        .spell-card-top{
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding-left: 8px;
+        }
+        .spell-name-toggle{
+            cursor: pointer;
+            flex: 1;
+            min-width: 0;
+            user-select: none;
+        }
         .spell-name{
             font-family: 'Cinzel', serif;
             font-size: 15px;
             color: var(--gold-light);
-            padding-left: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
         }
-        .spell-meta{
+        .spell-level-school{
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+        .spell-details{
             font-size: 13px;
             color: var(--text-dim);
-            margin-top: 4px;
+            margin-top: 8px;
             padding-left: 8px;
             line-height: 1.5;
         }
         .spell-badges{
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
+            display: inline-flex;
             gap: 4px;
+            flex: 0 0 auto;
+            padding-top: 2px;
         }
         .badge{
             display: inline-block;
             background: var(--bg4);
             color: var(--gold-dim);
             border: 1px solid var(--border-gold);
-            padding: 2px 6px;
+            padding: 1px 5px;
             border-radius: 4px;
             font-family: 'Cinzel', serif;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
+        }
+        .spell-action-bottom{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            padding-left: 8px;
+            justify-content: flex-end;
         }
         .spell-action{
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
             margin-top: 10px;
-            padding-left: 8px;
+            padding-left: 6px;
             justify-content: flex-end;
         }
 
@@ -478,4 +534,54 @@
             body{ padding: 12px 12px 60px; }
             h1{ font-size: 18px; }
         }
+
+        /* CONCENTRATION BANNER */
+        .concentration-banner{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #3d2e0f, #4a3818);
+            border: 1px solid var(--gold-dim);
+            border-radius: 6px;
+            padding: 5px 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--gold-light);
+        }
+        .concentration-banner strong{
+            color: var(--gold);
+        }
+        .concentration-banner-empty{
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            justify-content: center;
+        }
+        .concentration-banner .btn-small{
+            padding: 3px 8px;
+            font-size: 11px;
+        }
+
+        /* HELP MODAL */
+        .help-section{
+            border-bottom: 1px solid var(--border);
+            padding: 4px 0;
+        }
+        .help-header{
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: var(--gold-light);
+            padding: 8px 4px;
+            user-select: none;
+        }
+        .help-header:hover{ color: var(--gold); }
+        .help-body{
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            padding: 0 4px 10px 4px;
+        }
+        .help-body strong{ color: var(--gold-dim); }
 

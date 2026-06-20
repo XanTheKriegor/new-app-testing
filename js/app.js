@@ -1,5 +1,39 @@
 ﻿let currentSpellTab = 'prepared';
 let spellSearchQuery = '';
+let detailsDefaultShown = localStorage.getItem('detailsDefaultShown') === 'true';
+
+function setTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('appTheme', theme);
+    updateThemeButtons();
+}
+
+function updateThemeButtons(){
+    const theme = localStorage.getItem('appTheme') || 'dark';
+    const lightBtn = document.getElementById('themeLightBtn');
+    const darkBtn = document.getElementById('themeDarkBtn');
+    if(lightBtn) lightBtn.className = theme === 'light' ? 'btn btn-gold btn-small' : 'btn btn-gray btn-small';
+    if(darkBtn) darkBtn.className = theme === 'dark' ? 'btn btn-gold btn-small' : 'btn btn-gray btn-small';
+}
+
+(function initTheme(){
+    const theme = localStorage.getItem('appTheme') || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+})();
+
+function toggleDetailsDefault(){
+    detailsDefaultShown = !detailsDefaultShown;
+    localStorage.setItem('detailsDefaultShown', detailsDefaultShown);
+    updateDetailsDefaultBtn();
+    renderSpellCards(currentSpellTab);
+}
+
+function updateDetailsDefaultBtn(){
+    const btn = document.getElementById('detailsDefaultBtn');
+    if(!btn) return;
+    btn.textContent = detailsDefaultShown ? '📖 Details On' : '📖 Details Off';
+    btn.className = detailsDefaultShown ? 'btn btn-green' : 'btn btn-gray';
+}
 let activeFilters = { levels: [], schools: [], classes: [], sources: [], ritual: false, concentration: false };
 let filterPanelOpen = false;
 
@@ -138,7 +172,7 @@ function addToBook(spellId){
     const spell = SPELL_DATABASE.find(s => s.id === spellId);
 
     if(character && spell && !spell.classes.includes(character.class)){
-        alert(`${spell.name} není na spell listu pro ${character.class}!`);
+        alert(`${spell.name} is not on the spell list for ${character.class}!`);
         return;
     }
 
@@ -169,6 +203,53 @@ function unprepareSpell(spellId){
     renderSpellCards('prepared');
 }
 
+function getActiveConcentration(){
+    const data = JSON.parse(localStorage.getItem('activeConcentration') || '{}');
+    return data[currentCharacterId] || null;
+}
+
+function setActiveConcentration(spellName){
+    const data = JSON.parse(localStorage.getItem('activeConcentration') || '{}');
+    if(spellName) data[currentCharacterId] = spellName;
+    else delete data[currentCharacterId];
+    localStorage.setItem('activeConcentration', JSON.stringify(data));
+}
+
+function breakConcentration(){
+    setActiveConcentration(null);
+    renderConcentrationBanner();
+}
+
+function renderConcentrationBanner(){
+    const banner = document.getElementById('concentrationBanner');
+    if(!banner) return;
+    const active = getActiveConcentration();
+    banner.classList.remove('hidden');
+    if(!active){
+        banner.className = 'concentration-banner concentration-banner-empty';
+        banner.innerHTML = `<span>⚪ No active concentration</span>`;
+        return;
+    }
+    banner.className = 'concentration-banner';
+    banner.innerHTML = `
+        <span>🔵 Concentrating: <strong>${active}</strong></span>
+        <button class="btn btn-small btn-red" onclick="breakConcentration()" style="margin-top:0;">✕ Break</button>
+    `;
+}
+
+function applyConcentration(spell){
+    if(!spell.concentration) return;
+    const active = getActiveConcentration();
+    if(active && active !== spell.name){
+        if(!confirm(`You are already concentrating on "${active}". Casting "${spell.name}" will end that concentration. Continue?`)){
+            return false;
+        }
+    }
+    setActiveConcentration(spell.name);
+    renderConcentrationBanner();
+    return true;
+}
+
 function castSpell(spellId){
     const characters = getCharacters();
     const character = characters.find(c => c.id === currentCharacterId);
@@ -179,35 +260,36 @@ function castSpell(spellId){
 
     const minLvl = getSpellLevelNum(spell.level);
 
-    // Cantrip – žádný slot nepotřebuje
+    // Cantrip – no slot needed
     if(minLvl === 0){
+        if(spell.concentration && applyConcentration(spell) === false) return;
         playSchoolSound(spell.school, spell.id);
         return;
     }
 
     const slots = character.spellSlots || {};
 
-    // Zjisti dostupné sloty od minLvl výše
+    // Find available slots from minLvl upward
     const availableLevels = [];
     for(let i = minLvl; i <= 9; i++){
         const count = (slots[i] || []).filter(s => s === true).length;
         if(count > 0) availableLevels.push({ level: i, count });
     }
 
-    // Žádný dostupný slot
+    // No available slot
     if(availableLevels.length === 0){
-        alert('Nemáš žádný volný spell slot úrovně ' + minLvl + ' ani vyšší!');
+        alert('You have no free spell slot of level ' + minLvl + ' or higher!');
         return;
     }
 
-    // Zobraz modal pro výběr (vždy, i když je jen jeden level)
+    // Show selection modal (always, even if only one level)
     document.getElementById('castModalTitle').textContent = spell.name;
-    document.getElementById('castModalSubtitle').textContent = 'Vyber spell slot (min. úroveň ' + minLvl + '):';
+    document.getElementById('castModalSubtitle').textContent = 'Choose a spell slot (min. level ' + minLvl + '):';
 
     const slotsDiv = document.getElementById('castModalSlots');
     slotsDiv.innerHTML = availableLevels.map(({level, count}) => `
         <button class="btn btn-green" onclick="confirmCast('${spellId}', ${level}); closeCastModal();">
-            Slot úrovně ${level} <span style="opacity:0.7;font-size:13px;">(zbývá ${count})</span>
+            Slot level ${level} <span style="opacity:0.7;font-size:13px;">(${count} remaining)</span>
         </button>
     `).join('');
 
@@ -222,6 +304,8 @@ function confirmCast(spellId, slotLevel){
 
     const spell = SPELL_DATABASE.find(s => s.id === spellId);
     if(!spell) return;
+
+    if(spell.concentration && applyConcentration(spell) === false) return;
 
     const slots = character.spellSlots[slotLevel] || [];
     const idx = slots.findIndex(s => s === true);
@@ -245,6 +329,7 @@ function renderSpellCards(mode='all'){
 
     const known = getKnownSpells();
     const prepared = getPreparedSpells();
+    const pinnedList = getPinnedSpells();
 
     let spells = [];
 
@@ -260,9 +345,15 @@ function renderSpellCards(mode='all'){
             .filter(s => known.includes(s.id) && matchesAll(s))
             .sort((a,b) => getSpellLevelNum(a.level) - getSpellLevelNum(b.level) || a.name.localeCompare(b.name));
     } else if(mode === 'prepared'){
+        const pinned = getPinnedSpells();
         spells = SPELL_DATABASE
             .filter(s => prepared.includes(s.id) && matchesAll(s))
-            .sort((a,b) => getSpellLevelNum(a.level) - getSpellLevelNum(b.level) || a.name.localeCompare(b.name));
+            .sort((a,b) => {
+                const aPinned = pinned.includes(a.id);
+                const bPinned = pinned.includes(b.id);
+                if(aPinned !== bPinned) return aPinned ? -1 : 1;
+                return getSpellLevelNum(a.level) - getSpellLevelNum(b.level) || a.name.localeCompare(b.name);
+            });
     }
 
     if(spells.length === 0){
@@ -280,11 +371,11 @@ function renderSpellCards(mode='all'){
         let actions = '';
 
         if(mode === 'all'){
-            actions = `<button class="btn btn-green" style="width:auto;" onclick="addToBook('${spell.id}')">Add to Book</button>`;
+            actions = `<button class="btn btn-small btn-green" onclick="addToBook('${spell.id}')">Add to Book</button>`;
         } else if(mode === 'known'){
             actions = `
-                ${!isPrepared ? `<button class="btn btn-green" style="width:auto;" onclick="prepareSpell('${spell.id}')">Prepare</button>` : '<span style="color:#9fd19f;font-size:13px;">✔ Prepared</span>'}
-                <button class="btn btn-red" style="width:auto;" onclick="removeFromBook('${spell.id}')">Remove</button>
+                ${!isPrepared ? `<button class="btn btn-small btn-green" onclick="prepareSpell('${spell.id}')">Prepare</button>` : '<span style="color:#9fd19f;font-size:13px;">✔ Prepared</span>'}
+                <button class="btn btn-small btn-red" onclick="removeFromBook('${spell.id}')">Remove</button>
             `;
         } else if(mode === 'prepared'){
             const lvl = getSpellLevelNum(spell.level);
@@ -292,10 +383,12 @@ function renderSpellCards(mode='all'){
             const canCast = lvl === 0 || Object.keys(slots).some(k => parseInt(k) >= lvl && slots[k].some(s => s === true));
             const hasCustomSound = customSpellSounds[spell.id] ? '🎵' : '🎵';
             const customSoundStyle = customSpellSounds[spell.id] ? 'background:#3d6b3d;' : '';
+            const isPinned = pinnedList.includes(spell.id);
             actions = `
-                <button class="btn ${canCast ? 'btn-green' : 'btn-gray'}" style="width:auto;${!canCast && lvl > 0 ? 'opacity:0.5;' : ''}" onclick="castSpell('${spell.id}')">Cast</button>
-                <button class="btn btn-gray" style="width:auto;${customSoundStyle}" onclick="openSpellSoundModal('${spell.id}', '${spell.name.replace(/'/g, "\\'")}')">🎵</button>
-                <button class="btn btn-gray" style="width:auto;" onclick="unprepareSpell('${spell.id}')">Unprepare</button>
+                <button class="btn btn-small ${canCast ? 'btn-green' : 'btn-gray'}" ${!canCast && lvl > 0 ? 'style="opacity:0.5;"' : ''} onclick="castSpell('${spell.id}')">Cast</button>
+                <button class="btn btn-small btn-gray" ${isPinned ? 'style="background:#5a4318;"' : ''} onclick="togglePinSpell('${spell.id}')" title="Pin to top">${isPinned ? '⭐' : '☆'}</button>
+                <button class="btn btn-small btn-gray" ${customSoundStyle ? `style="${customSoundStyle}"` : ''} onclick="openSpellSoundModal('${spell.id}', '${spell.name.replace(/'/g, "\\'")}')">🎵</button>
+                <button class="btn btn-small btn-gray" onclick="unprepareSpell('${spell.id}')">Unprepare</button>
             `;
         }
 
@@ -304,7 +397,9 @@ function renderSpellCards(mode='all'){
         const rawDesc = spell.description || '';
         const cleanTags = s => s
             .replace(/\{@(?:scaledice|scaledamage)\s+[^|]+\|[^|]+\|([^|}]+)[^}]*\}/g, '$1')
-            .replace(/\{@(?:damage|dice)\s+([^|}\s]+)[^}]*\}/g, '$1')
+            .replace(/\{@(?:damage|dice)\s+([^|}]+)[^}]*\}/g, '$1')
+            .replace(/\{@filter\s+([^|{}]+)(?:\|[^}]*)?\}/g, '$1')
+            .replace(/\{@chance\s+(\d+)\|[^}]*\}/g, '$1%')
             .replace(/\{@\w+\s+[^|{}]+\|[^|{}]+\|([^|{}]+)(?:\|[^}]*)?\}/g, '$1')
             .replace(/\{@\w+\s+([^|{}]+?)(?:\|[^}]*)?\}/g, '$1')
             .replace(/\{@[^}]*\}/g, '')
@@ -330,17 +425,23 @@ function renderSpellCards(mode='all'){
         }
 
         return `
-            <div class="spell-card" data-school="${spell.school}">
-                <div class="spell-badges">
-                    ${spell.concentration ? '<span class="badge">C</span>' : ''}
-                    ${spell.ritual ? '<span class="badge">R</span>' : ''}
+            <div class="spell-card" data-school="${spell.school}" ${mode === 'prepared' && pinnedList.includes(spell.id) ? 'style="border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;"' : ''}>
+                <div class="spell-card-top">
+                    <div class="spell-name-toggle" onclick="toggleSpellDetails(this)">
+                        <div class="spell-name">
+                            ${spell.name}
+                            <span class="spell-badges">
+                                ${spell.concentration ? '<span class="badge">C</span>' : ''}
+                                ${spell.ritual ? '<span class="badge">R</span>' : ''}
+                            </span>
+                        </div>
+                        <div class="spell-level-school">${spell.level} · ${spell.school}</div>
+                    </div>
                 </div>
-                <div class="spell-name">${spell.name}</div>
-                <div class="spell-meta">
-                    ${spell.level} · ${spell.school}<br>
-                    ${spell.castingTime}<br>
+                <div class="spell-details ${detailsDefaultShown ? '' : 'hidden'}">
                     Range: ${spell.range}<br>
                     Duration: ${spell.duration}<br>
+                    Casting time: ${spell.castingTime}<br>
                     ${compStr ? `Components: ${compStr}<br>` : ''}
                     <span style="color:var(--gold-dim);">Source: ${spell.source}</span><br>
                     <span style="color:var(--text-dim);font-size:12px;">${spell.classes.join(', ')}</span>
@@ -349,7 +450,7 @@ function renderSpellCards(mode='all'){
                 <div class="spell-desc-toggle" onclick="toggleSpellDesc(this)">▶ Description</div>
                 <div class="spell-desc hidden">${descClean.replace(/\n/g, '<br>')}</div>
                 ` : ''}
-                <div class="spell-action">
+                <div class="spell-action-bottom">
                     ${actions}
                 </div>
             </div>
@@ -365,8 +466,16 @@ function toggleSpellDesc(el){
     el.textContent = (open ? '▶' : '▼') + ' Description';
 }
 
+function toggleSpellDetails(el){
+    const card = el.closest('.spell-card');
+    const details = card.querySelector('.spell-details');
+    if(!details) return;
+    details.classList.toggle('hidden');
+}
+
 
 let currentCharacterId = null;
+let editingCharacterId = null;
 
     // LEVELS
 
@@ -520,7 +629,7 @@ function renderSpellSlotTable(character){
         character.spellSlots = initSpellSlots(character);
     }
 
-    // Zjisti max počet slotů v jednom levelu pro výšku buněk
+    // Find max slot count at any level for cell height
     let maxSlots = 0;
     for(let i=1;i<=9;i++){
         const count = (character.spellSlots[i] || []).length;
@@ -553,13 +662,13 @@ function openSpellbook(){
     const character = characters.find(c => c.id === currentCharacterId);
     if(!character) return;
 
-    // Inicializace slotů pokud ještě neexistují
+    // Initialize slots if they don't exist yet
     if(!character.spellSlots){
         character.spellSlots = initSpellSlots(character);
         saveCharacters(characters);
     }
 
-    // Nastav výchozí filtr podle classy postavy
+    // Set default filter based on character's class
     activeFilters = { levels: [], schools: [], classes: [character.class], sources: [], ritual: false, concentration: false };
     document.getElementById('filterClearBtn').style.display = 'block';
 
@@ -568,6 +677,8 @@ function openSpellbook(){
     document.getElementById("spellbookTitle").textContent = character.name + " - Spellbook";
 
     renderSpellSlotTable(character);
+    renderConcentrationBanner();
+    updateDetailsDefaultBtn();
     showSpellTab('prepared');
 }
 
@@ -578,10 +689,30 @@ function backToCharacterFromSpellbook(){
 
 
 
-let soundsEnabled = true;
+let soundsEnabled = false;
 let soundsDirectoryHandle = null;
 let spellSoundFiles = [];
 let customSpellSounds = JSON.parse(localStorage.getItem('customSpellSounds') || '{}');
+
+function getPinnedSpells(){
+    const data = JSON.parse(localStorage.getItem('pinnedSpells') || '{}');
+    return data[currentCharacterId] || [];
+}
+
+function savePinnedSpells(list){
+    const data = JSON.parse(localStorage.getItem('pinnedSpells') || '{}');
+    data[currentCharacterId] = list;
+    localStorage.setItem('pinnedSpells', JSON.stringify(data));
+}
+
+function togglePinSpell(spellId){
+    const pinned = getPinnedSpells();
+    const idx = pinned.indexOf(spellId);
+    if(idx === -1) pinned.push(spellId);
+    else pinned.splice(idx, 1);
+    savePinnedSpells(pinned);
+    renderSpellCards('prepared');
+}
 let currentSpellSoundId = null;
 
 async function pickSoundsFolder(){
@@ -590,11 +721,11 @@ async function pickSoundsFolder(){
         document.getElementById('soundsFolderBtn').textContent = '📁 ' + soundsDirectoryHandle.name;
         document.getElementById('soundsFolderBtn').className = 'btn btn-green';
 
-        // Načti seznam mp3 souborů rekurzivně
+        // Load list of mp3 files recursively
         spellSoundFiles = await listMp3Files(soundsDirectoryHandle);
-        console.log('Nalezeno souborů:', spellSoundFiles.length);
+        console.log('Files found:', spellSoundFiles.length);
     } catch(e) {
-        if(e.name !== 'AbortError') console.warn('Složku se nepodařilo otevřít:', e);
+        if(e.name !== 'AbortError') console.warn('Could not open folder:', e);
     }
 }
 
@@ -613,7 +744,7 @@ async function listMp3Files(dirHandle, path=''){
 
 function openSpellSoundModal(spellId, spellName){
     if(!soundsDirectoryHandle){
-        alert('Nejdřív vyber složku sounds tlačítkem 📁 Sounds folder');
+        alert('Please pick the sounds folder first using the 📁 Sounds button');
         return;
     }
 
@@ -623,11 +754,11 @@ function openSpellSoundModal(spellId, spellName){
     const currentSound = customSpellSounds[spellId];
     const clearBtn = document.getElementById('spellSoundClearBtn');
     clearBtn.style.display = currentSound ? 'block' : 'none';
-    if(currentSound) clearBtn.textContent = '🗑 Odebrat vlastní zvuk (' + currentSound + ')';
+    if(currentSound) clearBtn.textContent = '🗑 Remove custom sound (' + currentSound + ')';
 
     const list = document.getElementById('spellSoundFileList');
     if(spellSoundFiles.length === 0){
-        list.innerHTML = '<p style="color:#aaa;text-align:center;">Žádné mp3 soubory nenalezeny.</p>';
+        list.innerHTML = '<p style="color:#aaa;text-align:center;">No mp3 files found.</p>';
     } else {
         list.innerHTML = spellSoundFiles.map(f => `
             <button class="btn ${customSpellSounds[spellId] === f.path ? 'btn-green' : 'btn-gray'}"
@@ -644,12 +775,14 @@ function selectSpellSound(spellId, filePath){
     customSpellSounds[spellId] = filePath;
     localStorage.setItem('customSpellSounds', JSON.stringify(customSpellSounds));
     closeSpellSoundModal();
+    renderSpellCards(currentSpellTab);
 }
 
 function clearSpellSound(){
     if(currentSpellSoundId) delete customSpellSounds[currentSpellSoundId];
     localStorage.setItem('customSpellSounds', JSON.stringify(customSpellSounds));
     closeSpellSoundModal();
+    renderSpellCards(currentSpellTab);
 }
 
 function closeSpellSoundModal(){
@@ -665,7 +798,7 @@ async function playSchoolSound(school, spellId){
     const soundSet = character && character.soundSet ? character.soundSet : null;
 
     try {
-        // Vlastní zvuk kouzla přes File System API
+        // Custom spell sound via File System API
         if(spellId && customSpellSounds[spellId] && soundsDirectoryHandle){
             const parts = customSpellSounds[spellId].split('/');
             let dirH = soundsDirectoryHandle;
@@ -676,34 +809,34 @@ async function playSchoolSound(school, spellId){
             const file = await fileHandle.getFile();
             const url = URL.createObjectURL(file);
             const audio = new Audio(url);
-            audio.play().catch(e => console.warn('Chyba přehrávání:', e));
+            audio.play().catch(e => console.warn('Playback error:', e));
             audio.onended = () => URL.revokeObjectURL(url);
             return;
         }
 
         if(!soundSet) return;
 
-        // Pokud je vybraná složka, použij File System API
+        // If a folder is selected, use the File System API
         if(soundsDirectoryHandle){
             const setDir = await soundsDirectoryHandle.getDirectoryHandle(soundSet);
             const fileHandle = await setDir.getFileHandle(school.toLowerCase() + '.mp3');
             const file = await fileHandle.getFile();
             const url = URL.createObjectURL(file);
             const audio = new Audio(url);
-            audio.play().catch(e => console.warn('Chyba přehrávání:', e));
+            audio.play().catch(e => console.warn('Playback error:', e));
             audio.onended = () => URL.revokeObjectURL(url);
             return;
         }
 
-        // Fallback – relativní cesta k HTML souboru
+        // Fallback – relative path to the HTML file
         const audio = new Audio('sounds/' + soundSet + '/' + school.toLowerCase() + '.mp3');
-        audio.play().catch(e => console.warn('Zvuk se nepodařilo přehrát:', e));
+        audio.play().catch(e => console.warn('Could not play sound:', e));
 
     } catch(e) {
-        // Fallback při chybě File System API
+        // Fallback on File System API error
         if(soundSet){
             const audio = new Audio('sounds/' + soundSet + '/' + school.toLowerCase() + '.mp3');
-            audio.play().catch(e2 => console.warn('Zvuk se nepodařilo přehrát:', e2));
+            audio.play().catch(e2 => console.warn('Could not play sound:', e2));
         }
     }
 }
@@ -711,7 +844,7 @@ async function playSchoolSound(school, spellId){
 function toggleSounds(){
     soundsEnabled = !soundsEnabled;
     const btn = document.getElementById('soundToggleBtn');
-    btn.textContent = soundsEnabled ? 'Sounds On' : 'Sounds Off';
+    btn.textContent = soundsEnabled ? '🔊 Sounds On' : '🔇 Sounds Off';
     btn.className = soundsEnabled ? 'btn btn-green' : 'btn btn-gray';
 }
 
@@ -721,6 +854,8 @@ function longRest(){
     if(!character) return;
     character.spellSlots = initSpellSlots(character);
     saveCharacters(characters);
+    setActiveConcentration(null);
+    renderConcentrationBanner();
     renderSpellSlotTable(character);
     renderSpellCards(currentSpellTab);
 }
@@ -785,6 +920,21 @@ function showSpellTab(tab){
         localStorage.setItem("characters", JSON.stringify(characters));
     }
 
+    window.openHelpModal = function(){
+        document.getElementById('helpModal').classList.add('open');
+    };
+
+    window.closeHelpModal = function(){
+        document.getElementById('helpModal').classList.remove('open');
+    };
+
+    window.toggleHelpSection = function(el){
+        const body = el.nextElementSibling;
+        const open = !body.classList.contains('hidden');
+        body.classList.toggle('hidden', open);
+        el.textContent = (open ? '▶' : '▼') + el.textContent.substring(1);
+    };
+
     window.exportData = function(){
         const data = {
             version: 1,
@@ -810,9 +960,9 @@ function showSpellTab(tab){
         reader.onload = function(e){
             try {
                 const data = JSON.parse(e.target.result);
-                if(!data.characters) throw new Error('Neplatný soubor');
+                if(!data.characters) throw new Error('Invalid file');
 
-                if(!confirm('Import přepíše všechna stávající data. Pokračovat?')) {
+                if(!confirm('Importing will overwrite all existing data. Continue?')) {
                     event.target.value = '';
                     return;
                 }
@@ -823,9 +973,9 @@ function showSpellTab(tab){
                 localStorage.setItem('customSpellSounds', JSON.stringify(data.customSpellSounds || {}));
 
                 renderCharacters();
-                alert('Import úspěšný! Načteno ' + data.characters.length + ' postav.');
+                alert('Import successful! Loaded ' + data.characters.length + ' characters.');
             } catch(err) {
-                alert('Chyba při importu: ' + err.message);
+                alert('Import error: ' + err.message);
             }
             event.target.value = '';
         };
@@ -881,18 +1031,18 @@ function showSpellTab(tab){
                 spellSlots: oldChar.spellSlots
             };
 
-            // Přepočítej sloty pokud se změnil level nebo classa
+            // Recalculate slots if level or class changed
             if(levelChanged || classChanged){
                 const newSlots = initSpellSlots(updatedChar);
 
                 if(!classChanged && levelChanged){
-                    // Zachovej stav starých slotů, jen přidej nové
+                    // Keep old slot states, just add new ones
                     const oldSlots = oldChar.spellSlots || {};
                     for(let i = 1; i <= 9; i++){
                         const oldLevel = oldSlots[i] || [];
                         const newLevel = newSlots[i] || [];
                         if(oldLevel.length > 0 && newLevel.length >= oldLevel.length){
-                            // Zachovej stav starých slotů, nové přidej jako true
+                            // Keep old slot states, set new ones to true
                             for(let j = 0; j < oldLevel.length; j++){
                                 newLevel[j] = oldLevel[j];
                             }
@@ -998,4 +1148,5 @@ function showSpellTab(tab){
     // START
 
     renderCharacters();
+    updateThemeButtons();
 
