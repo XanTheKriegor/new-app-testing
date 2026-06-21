@@ -738,6 +738,11 @@ function togglePinSpell(spellId){
 let currentSpellSoundId = null;
 
 async function pickSoundsFolder(){
+    if(!window.showDirectoryPicker){
+        alert('Your browser does not support picking a local sounds folder. Built-in sound sets can still play from the app folder.');
+        return;
+    }
+
     try {
         soundsDirectoryHandle = await window.showDirectoryPicker({ mode: 'read' });
         document.getElementById('soundsFolderBtn').textContent = '📁 ' + soundsDirectoryHandle.name;
