@@ -8,6 +8,20 @@ function setTheme(theme){
     updateThemeButtons();
 }
 
+function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function escapeJsString(value){
+    return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 function updateThemeButtons(){
     const theme = localStorage.getItem('appTheme') || 'dark';
     const lightBtn = document.getElementById('themeLightBtn');
@@ -538,11 +552,11 @@ let editingCharacterId = null;
         document.getElementById("characterPage").classList.remove("hidden");
 
         document.getElementById("characterInfo").innerHTML = `
-            <h3>${character.name}</h3>
-            <p>Class: ${character.class}</p>
-            <p>Level: ${character.level}</p>
-            <p>Race: ${character.race}</p>
-            <p>Alignment: ${character.alignment}</p>
+            <h3>${escapeHtml(character.name)}</h3>
+            <p>Class: ${escapeHtml(character.class)}</p>
+            <p>Level: ${escapeHtml(character.level)}</p>
+            <p>Race: ${escapeHtml(character.race)}</p>
+            <p>Alignment: ${escapeHtml(character.alignment)}</p>
         `;
     }
 
@@ -762,8 +776,8 @@ function openSpellSoundModal(spellId, spellName){
     } else {
         list.innerHTML = spellSoundFiles.map(f => `
             <button class="btn ${customSpellSounds[spellId] === f.path ? 'btn-green' : 'btn-gray'}"
-                onclick="selectSpellSound('${spellId}', '${f.path.replace(/'/g, "\\'")}')">
-                ${customSpellSounds[spellId] === f.path ? '✔ ' : ''}${f.path}
+                onclick="selectSpellSound('${escapeJsString(spellId)}', '${escapeJsString(f.path)}')">
+                ${customSpellSounds[spellId] === f.path ? '✔ ' : ''}${escapeHtml(f.path)}
             </button>
         `).join('');
     }
@@ -1115,8 +1129,8 @@ function showSpellTab(tab){
 
             card.innerHTML = `
                 <div>
-                    <div class="character-card-name">${character.name}</div>
-                    <div class="character-card-meta">Lvl ${character.level} ${character.class} · ${character.race}</div>
+                    <div class="character-card-name">${escapeHtml(character.name)}</div>
+                    <div class="character-card-meta">Lvl ${escapeHtml(character.level)} ${escapeHtml(character.class)} · ${escapeHtml(character.race)}</div>
                 </div>
                 <span class="character-card-arrow">›</span>
             `;
