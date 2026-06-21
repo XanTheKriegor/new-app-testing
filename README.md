@@ -25,7 +25,7 @@ There is no automated test suite yet. Before shipping behavior changes, check:
 - Start, replace, and manually break concentration.
 - Toggle light/dark mode and details display.
 - Export data and import it into a fresh browser profile or cleared local storage.
-- Toggle sounds and verify built-in `sounds/wizard_male/` playback where browser audio permissions allow it.
+- Toggle sounds and verify built-in `sounds/wizard_male/` playback where browser audio permissions allow it. In browsers with local folder access support, also check the custom Sounds folder picker.
 
 ## Spell Database
 
