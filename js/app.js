@@ -22,6 +22,13 @@ function escapeJsString(value){
     return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+function createTextElement(tagName, text, className){
+    const el = document.createElement(tagName);
+    el.textContent = text;
+    if(className) el.className = className;
+    return el;
+}
+
 function updateThemeButtons(){
     const theme = localStorage.getItem('appTheme') || 'dark';
     const lightBtn = document.getElementById('themeLightBtn');
@@ -551,13 +558,14 @@ let editingCharacterId = null;
         document.getElementById("mainPage").classList.add("hidden");
         document.getElementById("characterPage").classList.remove("hidden");
 
-        document.getElementById("characterInfo").innerHTML = `
-            <h3>${escapeHtml(character.name)}</h3>
-            <p>Class: ${escapeHtml(character.class)}</p>
-            <p>Level: ${escapeHtml(character.level)}</p>
-            <p>Race: ${escapeHtml(character.race)}</p>
-            <p>Alignment: ${escapeHtml(character.alignment)}</p>
-        `;
+        const characterInfo = document.getElementById("characterInfo");
+        characterInfo.replaceChildren(
+            createTextElement('h3', character.name),
+            createTextElement('p', 'Class: ' + character.class),
+            createTextElement('p', 'Level: ' + character.level),
+            createTextElement('p', 'Race: ' + character.race),
+            createTextElement('p', 'Alignment: ' + character.alignment)
+        );
     }
 
     function backToCharacterSelection(){
@@ -1127,13 +1135,14 @@ function showSpellTab(tab){
             const card = document.createElement("div");
             card.className = "character-card";
 
-            card.innerHTML = `
-                <div>
-                    <div class="character-card-name">${escapeHtml(character.name)}</div>
-                    <div class="character-card-meta">Lvl ${escapeHtml(character.level)} ${escapeHtml(character.class)} · ${escapeHtml(character.race)}</div>
-                </div>
-                <span class="character-card-arrow">›</span>
-            `;
+            const details = document.createElement("div");
+            details.append(
+                createTextElement("div", character.name, "character-card-name"),
+                createTextElement("div", `Lvl ${character.level} ${character.class} · ${character.race}`, "character-card-meta")
+            );
+
+            const arrow = createTextElement("span", "›", "character-card-arrow");
+            card.append(details, arrow);
             card.onclick = () => openCharacter(character.id);
 
             characterList.appendChild(card);
