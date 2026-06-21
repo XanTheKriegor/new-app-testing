@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a static, single-page web app. `index.html` contains markup and loads assets. Styles live in `css/styles.css`, behavior in `js/app.js`, spell data in `js/spells.js`, and the normalized SQLite database in `db/`. Audio assets are under `sounds/`; `sounds/pwk.mp3` is shared, and `sounds/wizard_male/` plus `sounds/wizard_female/` contain school-specific files.
+This is a static, single-page web app. `index.html` contains markup and loads assets. Styles live in `css/styles.css`, behavior in `js/app.js`, spell data in `js/spells.js`, and the normalized SQLite database in `db/`. Audio assets are under `sounds/`; `sounds/wizard_male/` contains school-specific files for the current built-in sound set.
 
 Keep markup in `index.html`, visual changes in `css/styles.css`, behavior in `js/app.js`, and spell updates in `js/spells.js`. Regenerate `db/spells.db` after spell data changes. Add media under `sounds/` with lowercase names.
 
