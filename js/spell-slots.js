@@ -89,6 +89,7 @@ function renderSpellSlotTable(character){
 }
 
 function longRest(){
+    if(!confirm('Take a Long Rest? This will restore all spell slots and end your concentration.')) return;
     const characters = getCharacters();
     const character = characters.find(c => c.id === currentCharacterId);
     if(!character) return;
@@ -110,6 +111,7 @@ function shortRest(){
         const warlockLevel = slotCounts[0] || 0;
         const warlockCount = slotCounts[1] || 0;
         if(warlockLevel > 0){
+            if(!confirm('Take a Short Rest? This will restore your Pact Magic slots.')) return;
             character.spellSlots[warlockLevel] = Array(warlockCount).fill(true);
             saveCharacters(characters);
             renderSpellSlotTable(character);

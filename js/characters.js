@@ -24,6 +24,22 @@
 
     window.showMainPage = returnToMainPage;
 
+    function backFromCharacterForm(){
+        const wasEditing = editingCharacterId !== null;
+        const characterId = editingCharacterId;
+
+        document.getElementById("createCharacterPage").classList.add("hidden");
+        clearForm();
+
+        if(wasEditing && characterId){
+            openCharacter(characterId);
+        } else {
+            document.getElementById("mainPage").classList.remove("hidden");
+        }
+    }
+
+    window.backFromCharacterForm = backFromCharacterForm;
+
     function editCharacter(id){
 
         const characters = getCharacters();
@@ -40,6 +56,8 @@
         document.getElementById("characterRace").value = character.race;
         document.getElementById("characterAlignment").value = character.alignment;
         document.getElementById("characterSpellcastingMod").value = character.spellcastingAbilityMod ?? 0;
+        document.getElementById("characterSpellSaveDC").value = character.spellSaveDC ?? '';
+        document.getElementById("characterSpellAttackBonus").value = character.spellAttackBonus ?? '';
         document.getElementById("characterSoundSet").value = character.soundSet || '';
 
         document.querySelector('#createCharacterPage h2').textContent = "Edit Character";
@@ -60,14 +78,22 @@
         document.getElementById("characterPage").classList.remove("hidden");
 
         const characterInfo = document.getElementById("characterInfo");
-        characterInfo.replaceChildren(
+        const infoElements = [
             createTextElement('h3', character.name),
             createTextElement('p', 'Class: ' + character.class),
             createTextElement('p', 'Level: ' + character.level),
             createTextElement('p', 'Race: ' + character.race),
             createTextElement('p', 'Alignment: ' + character.alignment),
             createTextElement('p', 'Spellcasting modifier: ' + (character.spellcastingAbilityMod ?? 0))
-        );
+        ];
+        if(character.spellAttackBonus !== undefined && character.spellAttackBonus !== null && character.spellAttackBonus !== ''){
+            const bonusVal = character.spellAttackBonus;
+            infoElements.push(createTextElement('p', 'Spell Attack Bonus: ' + (bonusVal >= 0 ? '+' : '') + bonusVal));
+        }
+        if(character.spellSaveDC !== undefined && character.spellSaveDC !== null && character.spellSaveDC !== ''){
+            infoElements.push(createTextElement('p', 'Spell Save DC: ' + character.spellSaveDC));
+        }
+        characterInfo.replaceChildren(...infoElements);
     }
 
     function backToCharacterSelection(){
@@ -103,7 +129,13 @@ function createCharacter(){
         const level = document.getElementById("characterLevel").value;
         const race = document.getElementById("characterRace").value;
         const alignment = document.getElementById("characterAlignment").value;
-        const spellcastingAbilityMod = parseInt(document.getElementById("characterSpellcastingMod").value || 0);
+        const spellcastingModRaw = parseInt(document.getElementById("characterSpellcastingMod").value || 0);
+        const spellcastingAbilityMod = Math.min(10, Math.max(-5, isNaN(spellcastingModRaw) ? 0 : spellcastingModRaw));
+        document.getElementById("characterSpellcastingMod").value = spellcastingAbilityMod;
+        const spellSaveDCRaw = document.getElementById("characterSpellSaveDC").value;
+        const spellSaveDC = spellSaveDCRaw === '' ? null : parseInt(spellSaveDCRaw);
+        const spellAttackBonusRaw = document.getElementById("characterSpellAttackBonus").value;
+        const spellAttackBonus = spellAttackBonusRaw === '' ? null : parseInt(spellAttackBonusRaw);
         const soundSet = document.getElementById("characterSoundSet").value;
 
         const errorMessage = document.getElementById("errorMessage");
@@ -141,6 +173,8 @@ function createCharacter(){
                 race,
                 alignment,
                 spellcastingAbilityMod,
+                spellSaveDC,
+                spellAttackBonus,
                 soundSet,
                 spellSlots: oldChar.spellSlots
             };
@@ -180,6 +214,8 @@ function createCharacter(){
                 race,
                 alignment,
                 spellcastingAbilityMod,
+                spellSaveDC,
+                spellAttackBonus,
                 soundSet
             });
 
@@ -253,6 +289,8 @@ function createCharacter(){
         document.getElementById("characterRace").value = "";
         document.getElementById("characterAlignment").value = "";
         document.getElementById("characterSpellcastingMod").value = "0";
+        document.getElementById("characterSpellSaveDC").value = "";
+        document.getElementById("characterSpellAttackBonus").value = "";
         document.getElementById("characterSoundSet").value = "";
         document.getElementById("errorMessage").textContent = "";
 

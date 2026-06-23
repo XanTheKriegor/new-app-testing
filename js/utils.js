@@ -38,9 +38,19 @@ function updateThemeButtons(){
     document.documentElement.setAttribute('data-theme', theme);
 })();
 
+function toggleSpellbookSettings(){
+    const panel = document.getElementById('spellbookSettingsPanel');
+    const btn = document.getElementById('spellbookSettingsBtn');
+    if(!panel || !btn) return;
+    const opening = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden');
+    btn.classList.toggle('active', opening);
+}
+
 function toggleDetailsDefault(){
     detailsDefaultShown = !detailsDefaultShown;
     localStorage.setItem('detailsDefaultShown', detailsDefaultShown);
+    manuallySetDetailIds.clear();
     updateDetailsDefaultBtn();
     renderSpellCards(currentSpellTab);
 }

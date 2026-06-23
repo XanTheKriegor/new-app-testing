@@ -43,6 +43,17 @@ function savePinnedSpells(list){
     localStorage.setItem('pinnedSpells', JSON.stringify(data));
 }
 
+function getSpellEdition(spellId){
+    const charData = spellEditionPreferences[currentCharacterId] || {};
+    return charData[spellId] || '2024';
+}
+
+function setSpellEdition(spellId, edition){
+    if(!spellEditionPreferences[currentCharacterId]) spellEditionPreferences[currentCharacterId] = {};
+    spellEditionPreferences[currentCharacterId][spellId] = edition;
+    localStorage.setItem('spellEditionPreferences', JSON.stringify(spellEditionPreferences));
+}
+
 function getCharacters(){
         return JSON.parse(localStorage.getItem("characters")) || [];
     }
@@ -73,6 +84,8 @@ function getCharacters(){
             characters: JSON.parse(localStorage.getItem('characters') || '[]'),
             knownSpells: JSON.parse(localStorage.getItem('knownSpells') || '{}'),
             preparedSpells: JSON.parse(localStorage.getItem('preparedSpells') || '{}'),
+            pinnedSpells: JSON.parse(localStorage.getItem('pinnedSpells') || '{}'),
+            activeConcentration: JSON.parse(localStorage.getItem('activeConcentration') || '{}'),
             customSpellSounds: JSON.parse(localStorage.getItem('customSpellSounds') || '{}')
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -101,6 +114,8 @@ function getCharacters(){
                 localStorage.setItem('characters', JSON.stringify(data.characters || []));
                 localStorage.setItem('knownSpells', JSON.stringify(data.knownSpells || {}));
                 localStorage.setItem('preparedSpells', JSON.stringify(data.preparedSpells || {}));
+                localStorage.setItem('pinnedSpells', JSON.stringify(data.pinnedSpells || {}));
+                localStorage.setItem('activeConcentration', JSON.stringify(data.activeConcentration || {}));
                 localStorage.setItem('customSpellSounds', JSON.stringify(data.customSpellSounds || {}));
 
                 renderCharacters();

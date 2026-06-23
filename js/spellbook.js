@@ -34,10 +34,24 @@ function renderPreparationLimitBanner(){
 
     const character = getCharacters().find(c => c.id === currentCharacterId);
     const limitInfo = getPreparationLimit(character);
+    const knownCount = getKnownSpells().length;
+
+    const hasAttackBonus = character && character.spellAttackBonus !== undefined && character.spellAttackBonus !== null && character.spellAttackBonus !== '';
+    const hasSaveDC = character && character.spellSaveDC !== undefined && character.spellSaveDC !== null && character.spellSaveDC !== '';
+
+    const statsHtml = (hasAttackBonus || hasSaveDC) ? `
+        <span class="spell-stats-col">
+            ${hasAttackBonus ? `<span class="spell-attack-bonus">Spell Attack Bonus: ${character.spellAttackBonus >= 0 ? '+' : ''}${character.spellAttackBonus}</span>` : ''}
+            ${hasSaveDC ? `<span class="spell-save-dc">Spell save DC: ${character.spellSaveDC}</span>` : ''}
+        </span>
+    ` : '';
 
     if(!limitInfo){
-        banner.className = 'preparation-limit-banner hidden';
-        banner.innerHTML = '';
+        banner.className = 'preparation-limit-banner';
+        banner.innerHTML = `
+            <span><strong>Known spells:</strong> ${knownCount}</span>
+            ${statsHtml}
+        `;
         return;
     }
 
@@ -45,8 +59,12 @@ function renderPreparationLimitBanner(){
     const overLimit = preparedCount > limitInfo.limit;
     banner.className = 'preparation-limit-banner' + (overLimit ? ' warning' : '');
     banner.innerHTML = `
-        <strong>Prepared spells:</strong> ${preparedCount} / ${limitInfo.limit}
-        <span class="preparation-limit-note">${overLimit ? 'Over limit. Unprepare ' + (preparedCount - limitInfo.limit) + ' leveled spell' + (preparedCount - limitInfo.limit === 1 ? '' : 's') + '.' : limitInfo.label}</span>
+        <span>
+            <strong>Prepared spells:</strong> ${preparedCount} / ${limitInfo.limit}
+            ${overLimit ? `<span class="preparation-limit-note">Over limit. Unprepare ${preparedCount - limitInfo.limit} leveled spell${preparedCount - limitInfo.limit === 1 ? '' : 's'}.</span>` : ''}
+            <span class="known-spells-line"><strong>Known spells:</strong> ${knownCount}</span>
+        </span>
+        ${statsHtml}
     `;
 }
 
@@ -231,7 +249,7 @@ function renderSpellCards(mode='all'){
 
     if(mode === 'all'){
         spells = SPELL_DATABASE
-            .filter(s => !known.includes(s.id) && matchesAll(s))
+            .filter(s => matchesAll(s))
             .sort((a,b) => getSpellLevelNum(a.level) - getSpellLevelNum(b.level) || a.name.localeCompare(b.name));
     } else if(mode === 'known'){
         spells = SPELL_DATABASE
@@ -251,7 +269,7 @@ function renderSpellCards(mode='all'){
 
     if(spells.length === 0){
         const msgs = {
-            all: spellSearchQuery ? 'No spells match your search.' : 'All available spells are already in your spellbook.',
+            all: spellSearchQuery ? 'No spells match your search.' : 'No spells match the current filters.',
             known: spellSearchQuery ? 'No spells match your search.' : 'No spells in your spellbook yet. Add some from All Spells!',
             prepared: spellSearchQuery ? 'No spells match your search.' : 'No spells prepared. Prepare some from Known Spells!'
         };
@@ -261,10 +279,13 @@ function renderSpellCards(mode='all'){
 
     document.getElementById('spellTabContent').innerHTML = spells.map(spell => {
         const isPrepared = prepared.includes(spell.id);
+        const isKnown = known.includes(spell.id);
         let actions = '';
 
         if(mode === 'all'){
-            actions = `<button class="btn btn-small btn-green" onclick="addToBook('${spell.id}')">Add to Book</button>`;
+            actions = isKnown
+                ? '<span style="color:#9fd19f;font-size:13px;">✔ Already in your spellbook</span>'
+                : `<button class="btn btn-small btn-green" onclick="addToBook('${spell.id}')">Add to Book</button>`;
         } else if(mode === 'known'){
             const countsAgainstLimit = getSpellLevelNum(spell.level) > 0;
             const canPrepare = !limitInfo || !countsAgainstLimit || !preparationFull;
@@ -304,25 +325,31 @@ function renderSpellCards(mode='all'){
             .trim();
 
         let descClean = '';
+        let part2014Text = '', part2024Text = '';
         if(rawDesc){
             const has2014 = rawDesc.includes('[2014]');
             const has2024 = rawDesc.includes('[2024]');
             if(has2014 || has2024){
                 const part2014 = rawDesc.match(/\[2014\]([\s\S]*?)(?=\[2024\]|$)/);
                 const part2024 = rawDesc.match(/\[2024\]([\s\S]*?)$/);
-                let parts = [];
-                if(part2014 && part2014[1].trim()) parts.push('<span class="edition-tag">2014</span>\n' + cleanTags(part2014[1]));
-                if(part2024 && part2024[1].trim()) parts.push('<span class="edition-tag">2024</span>\n' + cleanTags(part2024[1]));
-                descClean = parts.join('\n\n');
+                part2014Text = part2014 && part2014[1].trim() ? cleanTags(part2014[1]) : '';
+                part2024Text = part2024 && part2024[1].trim() ? cleanTags(part2024[1]) : '';
             } else {
-                descClean = cleanTags(rawDesc);
+                part2014Text = part2024Text = cleanTags(rawDesc);
             }
         }
+
+        const showEditionToggle = (mode === 'known' || mode === 'prepared') && part2014Text && part2024Text && part2014Text !== part2024Text;
+        const selectedEdition = getSpellEdition(spell.id);
+        descClean = selectedEdition === '2014' ? part2014Text : part2024Text;
+
+        const detailsOpen = manuallySetDetailIds.has(spell.id) ? manuallySetDetailIds.get(spell.id) : detailsDefaultShown;
+        const descOpen = openDescriptionIds.has(spell.id);
 
         return `
             <div class="spell-card" data-school="${spell.school}" ${mode === 'prepared' && pinnedList.includes(spell.id) ? 'style="border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;"' : ''}>
                 <div class="spell-card-top">
-                    <div class="spell-name-toggle" onclick="toggleSpellDetails(this)">
+                    <div class="spell-name-toggle" onclick="toggleSpellDetails(this, '${spell.id}')">
                         <div class="spell-name">
                             ${spell.name}
                             <span class="spell-badges">
@@ -332,18 +359,24 @@ function renderSpellCards(mode='all'){
                         </div>
                         <div class="spell-level-school">${spell.level} · ${spell.school}</div>
                     </div>
+                    ${showEditionToggle ? `
+                    <div class="edition-toggle" onclick="event.stopPropagation()">
+                        <button class="edition-toggle-btn ${selectedEdition === '2014' ? 'active' : ''}" onclick="setSpellEditionAndRerender('${spell.id}','2014')">2014</button>
+                        <button class="edition-toggle-btn ${selectedEdition === '2024' ? 'active' : ''}" onclick="setSpellEditionAndRerender('${spell.id}','2024')">2024</button>
+                    </div>
+                    ` : ''}
                 </div>
-                <div class="spell-details ${detailsDefaultShown ? '' : 'hidden'}">
+                <div class="spell-details ${detailsOpen ? '' : 'hidden'}">
                     Range: ${spell.range}<br>
                     Duration: ${spell.duration}<br>
                     Casting time: ${spell.castingTime}<br>
                     ${compStr ? `Components: ${compStr}<br>` : ''}
-                    <span style="color:var(--gold-dim);">Source: ${spell.source}</span><br>
+                    <span class="source-tooltip" style="color:var(--gold-dim);" title="${escapeHtml(SOURCE_NAMES[spell.source] || spell.source)}">Source: ${spell.source}</span><br>
                     <span style="color:var(--text-dim);font-size:12px;">${spell.classes.join(', ')}</span>
                 </div>
                 ${descClean ? `
-                <div class="spell-desc-toggle" onclick="toggleSpellDesc(this)">▶ Description</div>
-                <div class="spell-desc hidden">${descClean.replace(/\n/g, '<br>')}</div>
+                <div class="spell-desc-toggle" onclick="toggleSpellDesc(this, '${spell.id}')">${descOpen ? '▼' : '▶'} Description</div>
+                <div class="spell-desc ${descOpen ? '' : 'hidden'}">${descClean.replace(/\n/g, '<br>')}</div>
                 ` : ''}
                 <div class="spell-action-bottom">
                     ${actions}
@@ -354,18 +387,25 @@ function renderSpellCards(mode='all'){
 }
 
 
-function toggleSpellDesc(el){
+function toggleSpellDesc(el, spellId){
     const desc = el.nextElementSibling;
     const open = !desc.classList.contains('hidden');
     desc.classList.toggle('hidden', open);
     el.textContent = (open ? '▶' : '▼') + ' Description';
+    if(spellId){
+        if(open) openDescriptionIds.delete(spellId);
+        else openDescriptionIds.add(spellId);
+    }
 }
 
-function toggleSpellDetails(el){
+function toggleSpellDetails(el, spellId){
     const card = el.closest('.spell-card');
     const details = card.querySelector('.spell-details');
     if(!details) return;
     details.classList.toggle('hidden');
+    if(spellId){
+        manuallySetDetailIds.set(spellId, !details.classList.contains('hidden'));
+    }
 }
 
 function togglePinSpell(spellId){
@@ -375,6 +415,11 @@ function togglePinSpell(spellId){
     else pinned.splice(idx, 1);
     savePinnedSpells(pinned);
     renderSpellCards('prepared');
+}
+
+function setSpellEditionAndRerender(spellId, edition){
+    setSpellEdition(spellId, edition);
+    renderSpellCards(currentSpellTab);
 }
 
 function openSpellbook(){
@@ -389,12 +434,17 @@ function openSpellbook(){
     }
 
     // Set default filter based on character's class
-    activeFilters = { levels: [], schools: [], classes: [character.class], sources: [], ritual: false, concentration: false };
+    activeFilters = { levels: [], schools: [], classes: [character.class], sources: [], castingTimes: [], ritual: false, concentration: false };
     document.getElementById('filterClearBtn').style.display = 'block';
 
     document.getElementById("characterPage").classList.add("hidden");
     document.getElementById("spellbookPage").classList.remove("hidden");
     document.getElementById("spellbookTitle").textContent = character.name + " - Spellbook";
+
+    const settingsPanel = document.getElementById('spellbookSettingsPanel');
+    const settingsBtn = document.getElementById('spellbookSettingsBtn');
+    if(settingsPanel) settingsPanel.classList.add('hidden');
+    if(settingsBtn) settingsBtn.classList.remove('active');
 
     renderSpellSlotTable(character);
     renderConcentrationBanner();
