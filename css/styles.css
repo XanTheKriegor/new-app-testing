@@ -563,6 +563,32 @@
             font-size: 11px;
         }
 
+        /* PREPARATION LIMIT */
+        .preparation-limit-banner{
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+        .preparation-limit-banner strong{
+            color: var(--gold-light);
+        }
+        .preparation-limit-banner.warning{
+            background: linear-gradient(135deg, var(--red-dim), var(--bg3));
+            border-color: var(--red);
+            color: #ffd6d6;
+        }
+        .preparation-limit-banner .preparation-limit-note{
+            display: block;
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
         /* HELP MODAL */
         .help-section{
             border-bottom: 1px solid var(--border);

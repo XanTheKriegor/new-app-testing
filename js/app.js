@@ -62,6 +62,7 @@ const ALL_SCHOOLS = ['Abjuration','Conjuration','Divination','Enchantment','Evoc
 const ALL_CLASSES = ['Artificer','Bard','Cleric','Druid','Paladin','Ranger','Sorcerer','Warlock','Wizard'];
 const ALL_LEVELS = [0,1,2,3,4,5,6,7,8,9];
 const ALL_SOURCES = ['AAG','AI','BMT','EFA','EGW','FRHoF','FTD','GGR','IDRotF','PHB','SCC','SatO','TCE','XGE'];
+const PREPARED_CASTER_CLASSES = ['Wizard','Cleric','Druid','Paladin'];
 
 function toggleFilterPanel(){
     filterPanelOpen = !filterPanelOpen;
@@ -187,6 +188,58 @@ function savePreparedSpells(list){
     localStorage.setItem('preparedSpells', JSON.stringify(data));
 }
 
+function getLeveledPreparedSpells(list=getPreparedSpells()){
+    return list.filter(spellId => {
+        const spell = SPELL_DATABASE.find(s => s.id === spellId);
+        return spell && getSpellLevelNum(spell.level) > 0;
+    });
+}
+
+function getPreparationLimit(character){
+    if(!character || !PREPARED_CASTER_CLASSES.includes(character.class)) return null;
+
+    const slotCounts = getSpellSlots(character.class, parseInt(character.level));
+    const hasSpellSlots = slotCounts.some(count => count > 0);
+
+    if(!hasSpellSlots) return {
+        limit: 0,
+        modifier: parseInt(character.spellcastingAbilityMod || 0),
+        label: `${character.class}s cannot prepare leveled spells until they have spell slots.`
+    };
+
+    const modifier = parseInt(character.spellcastingAbilityMod || 0);
+    const level = parseInt(character.level) || 0;
+    const base = character.class === 'Paladin' ? Math.floor(level / 2) : level;
+    const limit = Math.max(1, base + modifier);
+    const formula = character.class === 'Paladin'
+        ? `half level (${base}) + spellcasting modifier (${modifier >= 0 ? '+' : ''}${modifier})`
+        : `level (${level}) + spellcasting modifier (${modifier >= 0 ? '+' : ''}${modifier})`;
+
+    return { limit, modifier, label: formula };
+}
+
+function renderPreparationLimitBanner(){
+    const banner = document.getElementById('preparationLimitBanner');
+    if(!banner) return;
+
+    const character = getCharacters().find(c => c.id === currentCharacterId);
+    const limitInfo = getPreparationLimit(character);
+
+    if(!limitInfo){
+        banner.className = 'preparation-limit-banner hidden';
+        banner.innerHTML = '';
+        return;
+    }
+
+    const preparedCount = getLeveledPreparedSpells().length;
+    const overLimit = preparedCount > limitInfo.limit;
+    banner.className = 'preparation-limit-banner' + (overLimit ? ' warning' : '');
+    banner.innerHTML = `
+        <strong>Prepared spells:</strong> ${preparedCount} / ${limitInfo.limit}
+        <span class="preparation-limit-note">${overLimit ? 'Over limit. Unprepare ' + (preparedCount - limitInfo.limit) + ' leveled spell' + (preparedCount - limitInfo.limit === 1 ? '' : 's') + '.' : limitInfo.label}</span>
+    `;
+}
+
 function addToBook(spellId){
     const characters = getCharacters();
     const character = characters.find(c => c.id === currentCharacterId);
@@ -208,19 +261,35 @@ function removeFromBook(spellId){
     let prepared = getPreparedSpells().filter(id => id !== spellId);
     saveKnownSpells(known);
     savePreparedSpells(prepared);
+    renderPreparationLimitBanner();
     renderSpellCards('known');
 }
 
 function prepareSpell(spellId){
+    const characters = getCharacters();
+    const character = characters.find(c => c.id === currentCharacterId);
+    const spell = SPELL_DATABASE.find(s => s.id === spellId);
     const prepared = getPreparedSpells();
-    if(!prepared.includes(spellId)) prepared.push(spellId);
+
+    if(prepared.includes(spellId)) return;
+
+    const limitInfo = getPreparationLimit(character);
+    const countsAgainstLimit = spell && getSpellLevelNum(spell.level) > 0;
+    if(limitInfo && countsAgainstLimit && getLeveledPreparedSpells(prepared).length >= limitInfo.limit){
+        alert(`You can prepare ${limitInfo.limit} leveled spell${limitInfo.limit === 1 ? '' : 's'} with this character. Unprepare another spell first.`);
+        return;
+    }
+
+    prepared.push(spellId);
     savePreparedSpells(prepared);
+    renderPreparationLimitBanner();
     renderSpellCards('known');
 }
 
 function unprepareSpell(spellId){
     const prepared = getPreparedSpells().filter(id => id !== spellId);
     savePreparedSpells(prepared);
+    renderPreparationLimitBanner();
     renderSpellCards('prepared');
 }
 
@@ -351,6 +420,11 @@ function renderSpellCards(mode='all'){
     const known = getKnownSpells();
     const prepared = getPreparedSpells();
     const pinnedList = getPinnedSpells();
+    const limitInfo = getPreparationLimit(character);
+    const preparedLeveledCount = getLeveledPreparedSpells(prepared).length;
+    const preparationFull = limitInfo && preparedLeveledCount >= limitInfo.limit;
+
+    renderPreparationLimitBanner();
 
     let spells = [];
 
@@ -394,8 +468,10 @@ function renderSpellCards(mode='all'){
         if(mode === 'all'){
             actions = `<button class="btn btn-small btn-green" onclick="addToBook('${spell.id}')">Add to Book</button>`;
         } else if(mode === 'known'){
+            const countsAgainstLimit = getSpellLevelNum(spell.level) > 0;
+            const canPrepare = !limitInfo || !countsAgainstLimit || !preparationFull;
             actions = `
-                ${!isPrepared ? `<button class="btn btn-small btn-green" onclick="prepareSpell('${spell.id}')">Prepare</button>` : '<span style="color:#9fd19f;font-size:13px;">✔ Prepared</span>'}
+                ${!isPrepared ? `<button class="btn btn-small ${canPrepare ? 'btn-green' : 'btn-gray'}" ${canPrepare ? '' : 'style="opacity:0.5;" title="Preparation limit reached"'} onclick="prepareSpell('${spell.id}')">Prepare</button>` : '<span style="color:#9fd19f;font-size:13px;">✔ Prepared</span>'}
                 <button class="btn btn-small btn-red" onclick="removeFromBook('${spell.id}')">Remove</button>
             `;
         } else if(mode === 'prepared'){
@@ -539,6 +615,7 @@ let editingCharacterId = null;
         document.getElementById("characterLevel").value = character.level;
         document.getElementById("characterRace").value = character.race;
         document.getElementById("characterAlignment").value = character.alignment;
+        document.getElementById("characterSpellcastingMod").value = character.spellcastingAbilityMod ?? 0;
         document.getElementById("characterSoundSet").value = character.soundSet || '';
 
         document.querySelector('#createCharacterPage h2').textContent = "Edit Character";
@@ -564,7 +641,8 @@ let editingCharacterId = null;
             createTextElement('p', 'Class: ' + character.class),
             createTextElement('p', 'Level: ' + character.level),
             createTextElement('p', 'Race: ' + character.race),
-            createTextElement('p', 'Alignment: ' + character.alignment)
+            createTextElement('p', 'Alignment: ' + character.alignment),
+            createTextElement('p', 'Spellcasting modifier: ' + (character.spellcastingAbilityMod ?? 0))
         );
     }
 
@@ -700,6 +778,7 @@ function openSpellbook(){
 
     renderSpellSlotTable(character);
     renderConcentrationBanner();
+    renderPreparationLimitBanner();
     updateDetailsDefaultBtn();
     showSpellTab('prepared');
 }
@@ -1018,6 +1097,7 @@ function showSpellTab(tab){
         const level = document.getElementById("characterLevel").value;
         const race = document.getElementById("characterRace").value;
         const alignment = document.getElementById("characterAlignment").value;
+        const spellcastingAbilityMod = parseInt(document.getElementById("characterSpellcastingMod").value || 0);
         const soundSet = document.getElementById("characterSoundSet").value;
 
         const errorMessage = document.getElementById("errorMessage");
@@ -1054,6 +1134,7 @@ function showSpellTab(tab){
                 level,
                 race,
                 alignment,
+                spellcastingAbilityMod,
                 soundSet,
                 spellSlots: oldChar.spellSlots
             };
@@ -1092,6 +1173,7 @@ function showSpellTab(tab){
                 level,
                 race,
                 alignment,
+                spellcastingAbilityMod,
                 soundSet
             });
 
@@ -1164,6 +1246,8 @@ function showSpellTab(tab){
         document.getElementById("characterLevel").value = "";
         document.getElementById("characterRace").value = "";
         document.getElementById("characterAlignment").value = "";
+        document.getElementById("characterSpellcastingMod").value = "0";
+        document.getElementById("characterSoundSet").value = "";
         document.getElementById("errorMessage").textContent = "";
 
         editingCharacterId = null;
