@@ -8,6 +8,27 @@ function setTheme(theme){
     updateThemeButtons();
 }
 
+function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function escapeJsString(value){
+    return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function createTextElement(tagName, text, className){
+    const el = document.createElement(tagName);
+    el.textContent = text;
+    if(className) el.className = className;
+    return el;
+}
+
 function updateThemeButtons(){
     const theme = localStorage.getItem('appTheme') || 'dark';
     const lightBtn = document.getElementById('themeLightBtn');
@@ -537,13 +558,14 @@ let editingCharacterId = null;
         document.getElementById("mainPage").classList.add("hidden");
         document.getElementById("characterPage").classList.remove("hidden");
 
-        document.getElementById("characterInfo").innerHTML = `
-            <h3>${character.name}</h3>
-            <p>Class: ${character.class}</p>
-            <p>Level: ${character.level}</p>
-            <p>Race: ${character.race}</p>
-            <p>Alignment: ${character.alignment}</p>
-        `;
+        const characterInfo = document.getElementById("characterInfo");
+        characterInfo.replaceChildren(
+            createTextElement('h3', character.name),
+            createTextElement('p', 'Class: ' + character.class),
+            createTextElement('p', 'Level: ' + character.level),
+            createTextElement('p', 'Race: ' + character.race),
+            createTextElement('p', 'Alignment: ' + character.alignment)
+        );
     }
 
     function backToCharacterSelection(){
@@ -716,6 +738,11 @@ function togglePinSpell(spellId){
 let currentSpellSoundId = null;
 
 async function pickSoundsFolder(){
+    if(!window.showDirectoryPicker){
+        alert('Your browser does not support picking a local sounds folder. Built-in sound sets can still play from the app folder.');
+        return;
+    }
+
     try {
         soundsDirectoryHandle = await window.showDirectoryPicker({ mode: 'read' });
         document.getElementById('soundsFolderBtn').textContent = '📁 ' + soundsDirectoryHandle.name;
@@ -762,8 +789,8 @@ function openSpellSoundModal(spellId, spellName){
     } else {
         list.innerHTML = spellSoundFiles.map(f => `
             <button class="btn ${customSpellSounds[spellId] === f.path ? 'btn-green' : 'btn-gray'}"
-                onclick="selectSpellSound('${spellId}', '${f.path.replace(/'/g, "\\'")}')">
-                ${customSpellSounds[spellId] === f.path ? '✔ ' : ''}${f.path}
+                onclick="selectSpellSound('${escapeJsString(spellId)}', '${escapeJsString(f.path)}')">
+                ${customSpellSounds[spellId] === f.path ? '✔ ' : ''}${escapeHtml(f.path)}
             </button>
         `).join('');
     }
@@ -1113,13 +1140,14 @@ function showSpellTab(tab){
             const card = document.createElement("div");
             card.className = "character-card";
 
-            card.innerHTML = `
-                <div>
-                    <div class="character-card-name">${character.name}</div>
-                    <div class="character-card-meta">Lvl ${character.level} ${character.class} · ${character.race}</div>
-                </div>
-                <span class="character-card-arrow">›</span>
-            `;
+            const details = document.createElement("div");
+            details.append(
+                createTextElement("div", character.name, "character-card-name"),
+                createTextElement("div", `Lvl ${character.level} ${character.class} · ${character.race}`, "character-card-meta")
+            );
+
+            const arrow = createTextElement("span", "›", "character-card-arrow");
+            card.append(details, arrow);
             card.onclick = () => openCharacter(character.id);
 
             characterList.appendChild(card);
