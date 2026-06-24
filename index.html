@@ -3,9 +3,6 @@
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>Xan's Magnificent Spell Tracker v1.0</title>
 
     <link rel="stylesheet" href="css/styles.css">
@@ -15,9 +12,7 @@
 <div class="container">
 
     <!-- MAIN PAGE -->
-    <div id="mainPage" class="main-page-wrap">
-
-        <button class="refresh-icon-btn" onclick="hardRefreshApp()" title="Refresh app (get latest version)">🔄</button>
+    <div id="mainPage">
 
         <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
             <button id="themeLightBtn" class="btn btn-gray btn-small" onclick="setTheme('light')" style="border-radius:20px;">☀ Light</button>
@@ -175,7 +170,7 @@
             <button class="back-arrow-btn" onclick="backToCharacterFromSpellbook()" title="Back">←</button>
             <h2 id="spellbookTitle">Spellbook</h2>
             <div class="spellbook-header-right">
-                <button class="level-up-btn" onclick="levelUpCharacter()" title="Level Up">⬆</button>
+                <button class="level-up-btn" onclick="levelUpCharacter()" title="Level Up">⬆ Lv</button>
                 <button class="settings-gear-btn" onclick="toggleSpellbookSettings()" id="spellbookSettingsBtn" title="Settings">⚙️</button>
             </div>
         </div>

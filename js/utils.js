@@ -4,15 +4,6 @@
     updateThemeButtons();
 }
 
-function hardRefreshApp(){
-    const btn = document.querySelector('.refresh-icon-btn');
-    if(btn){ btn.disabled = true; }
-
-    const url = new URL(window.location.href);
-    url.searchParams.set('_v', Date.now());
-    window.location.replace(url.toString());
-}
-
 function escapeHtml(value){
     return String(value ?? '').replace(/[&<>"']/g, char => ({
         '&': '&amp;',
