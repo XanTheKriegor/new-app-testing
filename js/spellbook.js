@@ -339,7 +339,7 @@ function renderSpellCards(mode='all'){
             }
         }
 
-        const showEditionToggle = (mode === 'known' || mode === 'prepared') && part2014Text && part2024Text && part2014Text !== part2024Text;
+        const showEditionToggle = part2014Text && part2024Text && part2014Text !== part2024Text;
         const selectedEdition = getSpellEdition(spell.id);
         descClean = selectedEdition === '2014' ? part2014Text : part2024Text;
 
@@ -419,6 +419,44 @@ function togglePinSpell(spellId){
 
 function setSpellEditionAndRerender(spellId, edition){
     setSpellEdition(spellId, edition);
+    renderSpellCards(currentSpellTab);
+}
+
+function levelUpCharacter(){
+    const characters = getCharacters();
+    const character = characters.find(c => c.id === currentCharacterId);
+    if(!character) return;
+
+    const currentLevel = parseInt(character.level);
+    if(currentLevel >= 20){
+        alert('This character is already level 20, the maximum.');
+        return;
+    }
+
+    const newLevel = currentLevel + 1;
+    if(!confirm(`Level up ${character.name} from level ${currentLevel} to level ${newLevel}? This will recalculate spell slots and the preparation limit.`)) return;
+
+    const oldSlots = character.spellSlots || {};
+    character.level = String(newLevel);
+
+    const newSlots = initSpellSlots(character);
+    for(let i = 1; i <= 9; i++){
+        const oldLevelSlots = oldSlots[i] || [];
+        const newLevelSlots = newSlots[i] || [];
+        if(oldLevelSlots.length > 0 && newLevelSlots.length >= oldLevelSlots.length){
+            for(let j = 0; j < oldLevelSlots.length; j++){
+                newLevelSlots[j] = oldLevelSlots[j];
+            }
+        }
+        newSlots[i] = newLevelSlots;
+    }
+    character.spellSlots = newSlots;
+
+    saveCharacters(characters);
+    document.getElementById("spellbookTitle").textContent = character.name + " - Spellbook";
+    renderSpellSlotTable(character);
+    renderPreparationLimitBanner();
+    renderConcentrationBanner();
     renderSpellCards(currentSpellTab);
 }
 

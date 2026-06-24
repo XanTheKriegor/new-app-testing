@@ -3,6 +3,9 @@
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Xan's Magnificent Spell Tracker v1.0</title>
 
     <link rel="stylesheet" href="css/styles.css">
@@ -12,7 +15,9 @@
 <div class="container">
 
     <!-- MAIN PAGE -->
-    <div id="mainPage">
+    <div id="mainPage" class="main-page-wrap">
+
+        <button class="refresh-icon-btn" onclick="hardRefreshApp()" title="Refresh app (get latest version)">🔄</button>
 
         <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
             <button id="themeLightBtn" class="btn btn-gray btn-small" onclick="setTheme('light')" style="border-radius:20px;">☀ Light</button>
@@ -52,6 +57,8 @@
         </div>
 
         <div class="card">
+
+            <div class="form-section-heading">Required</div>
 
             <label>Name</label>
             <input type="text" id="characterName">
@@ -108,30 +115,18 @@
                 <option>Drow</option>
             </select>
 
-            <label>Alignment</label>
-            <select id="characterAlignment">
-                <option value="">Select Alignment</option>
-                <option>Lawful Good</option>
-                <option>Neutral Good</option>
-                <option>Chaotic Good</option>
-                <option>Lawful Neutral</option>
-                <option>True Neutral</option>
-                <option>Chaotic Neutral</option>
-                <option>Lawful Evil</option>
-                <option>Neutral Evil</option>
-                <option>Chaotic Evil</option>
-            </select>
-
-            <label>Spellcasting Ability Modifier <span style="color:#aaa;font-weight:normal;font-size:13px;">(optional)</span></label>
+            <label>Spellcasting Ability Modifier</label>
             <input type="number" id="characterSpellcastingMod" min="-5" max="10" value="0" oninput="this.value = this.value === '' ? '' : Math.min(10, Math.max(-5, parseInt(this.value) || 0))">
 
-            <label>Spell Attack Bonus <span style="color:#aaa;font-weight:normal;font-size:13px;">(optional)</span></label>
+            <div class="form-section-heading optional">Optional</div>
+
+            <label>Spell Attack Bonus</label>
             <input type="number" id="characterSpellAttackBonus" placeholder="e.g. 7">
 
-            <label>Spell Save DC <span style="color:#aaa;font-weight:normal;font-size:13px;">(optional)</span></label>
+            <label>Spell Save DC</label>
             <input type="number" id="characterSpellSaveDC" placeholder="e.g. 15">
 
-            <label>Sound Set <span style="color:#aaa;font-weight:normal;font-size:13px;">(optional)</span></label>
+            <label>Sound Set</label>
             <select id="characterSoundSet">
                 <option value="">None</option>
                 <option value="wizard_male">Wizard Male</option>
@@ -179,7 +174,10 @@
         <div class="spellbook-header-row">
             <button class="back-arrow-btn" onclick="backToCharacterFromSpellbook()" title="Back">←</button>
             <h2 id="spellbookTitle">Spellbook</h2>
-            <button class="settings-gear-btn" onclick="toggleSpellbookSettings()" id="spellbookSettingsBtn" title="Settings">⚙️</button>
+            <div class="spellbook-header-right">
+                <button class="level-up-btn" onclick="levelUpCharacter()" title="Level Up">⬆</button>
+                <button class="settings-gear-btn" onclick="toggleSpellbookSettings()" id="spellbookSettingsBtn" title="Settings">⚙️</button>
+            </div>
         </div>
 
         <div id="spellbookSettingsPanel" class="spellbook-settings-panel hidden">
@@ -297,7 +295,7 @@
             <div class="help-section">
                 <div class="help-header" onclick="toggleHelpSection(this)">▶ Creating a character</div>
                 <div class="help-body hidden">
-                    Tap <strong>+ New Character</strong> and fill in name, class, level, race and alignment. Sound Set is optional, you can leave it blank and set it up later. Once saved the character shows up on the main screen, tap it any time to open it again.
+                    Tap <strong>+ New Character</strong> and fill in name, class, level and race. Spellcasting Ability Modifier, Spell Attack Bonus, Spell Save DC, and Sound Set are optional, you can leave them blank and set them up later. Once saved the character shows up on the main screen, tap it any time to open it again.
                 </div>
             </div>
 

@@ -54,7 +54,6 @@
         document.getElementById("characterClass").value = character.class;
         document.getElementById("characterLevel").value = character.level;
         document.getElementById("characterRace").value = character.race;
-        document.getElementById("characterAlignment").value = character.alignment;
         document.getElementById("characterSpellcastingMod").value = character.spellcastingAbilityMod ?? 0;
         document.getElementById("characterSpellSaveDC").value = character.spellSaveDC ?? '';
         document.getElementById("characterSpellAttackBonus").value = character.spellAttackBonus ?? '';
@@ -83,7 +82,6 @@
             createTextElement('p', 'Class: ' + character.class),
             createTextElement('p', 'Level: ' + character.level),
             createTextElement('p', 'Race: ' + character.race),
-            createTextElement('p', 'Alignment: ' + character.alignment),
             createTextElement('p', 'Spellcasting modifier: ' + (character.spellcastingAbilityMod ?? 0))
         ];
         if(character.spellAttackBonus !== undefined && character.spellAttackBonus !== null && character.spellAttackBonus !== ''){
@@ -128,8 +126,8 @@ function createCharacter(){
         const characterClass = document.getElementById("characterClass").value;
         const level = document.getElementById("characterLevel").value;
         const race = document.getElementById("characterRace").value;
-        const alignment = document.getElementById("characterAlignment").value;
-        const spellcastingModRaw = parseInt(document.getElementById("characterSpellcastingMod").value || 0);
+        const spellcastingModFieldRaw = document.getElementById("characterSpellcastingMod").value;
+        const spellcastingModRaw = parseInt(spellcastingModFieldRaw || 0);
         const spellcastingAbilityMod = Math.min(10, Math.max(-5, isNaN(spellcastingModRaw) ? 0 : spellcastingModRaw));
         document.getElementById("characterSpellcastingMod").value = spellcastingAbilityMod;
         const spellSaveDCRaw = document.getElementById("characterSpellSaveDC").value;
@@ -145,9 +143,9 @@ function createCharacter(){
             !characterClass ||
             !level ||
             !race ||
-            !alignment
+            spellcastingModFieldRaw === ''
         ){
-            errorMessage.textContent = "Please fill all fields.";
+            errorMessage.textContent = "Please fill all required fields.";
             return;
         }
 
@@ -171,7 +169,6 @@ function createCharacter(){
                 class: characterClass,
                 level,
                 race,
-                alignment,
                 spellcastingAbilityMod,
                 spellSaveDC,
                 spellAttackBonus,
@@ -212,7 +209,6 @@ function createCharacter(){
                 class: characterClass,
                 level,
                 race,
-                alignment,
                 spellcastingAbilityMod,
                 spellSaveDC,
                 spellAttackBonus,
@@ -287,7 +283,6 @@ function createCharacter(){
         document.getElementById("characterClass").value = "";
         document.getElementById("characterLevel").value = "";
         document.getElementById("characterRace").value = "";
-        document.getElementById("characterAlignment").value = "";
         document.getElementById("characterSpellcastingMod").value = "0";
         document.getElementById("characterSpellSaveDC").value = "";
         document.getElementById("characterSpellAttackBonus").value = "";
