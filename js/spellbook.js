@@ -78,6 +78,15 @@ function addToBook(spellId){
         return;
     }
 
+    if(character && spell){
+        const spellLevel = getSpellLevelNum(spell.level);
+        const maxLevel = getMaxAvailableSpellLevel(character);
+        if(spellLevel > maxLevel){
+            alert(`${spell.name} is level ${spellLevel}, but ${character.name} doesn't have spell slots that high yet (max level ${maxLevel === 0 ? '0 — cantrips only' : maxLevel}).`);
+            return;
+        }
+    }
+
     const known = getKnownSpells();
     if(!known.includes(spellId)) known.push(spellId);
     saveKnownSpells(known);
@@ -100,6 +109,11 @@ function prepareSpell(spellId){
     const prepared = getPreparedSpells();
 
     if(prepared.includes(spellId)) return;
+
+    if(character && spell && getSpellLevelNum(spell.level) > getMaxAvailableSpellLevel(character)){
+        alert(`${spell.name} is above ${character.name}'s available spell level.`);
+        return;
+    }
 
     const limitInfo = getPreparationLimit(character);
     const countsAgainstLimit = spell && getSpellLevelNum(spell.level) > 0;
@@ -137,16 +151,18 @@ function renderConcentrationBanner(){
         return;
     }
     banner.className = 'concentration-banner';
+    const activeSpell = SPELL_DATABASE.find(s => s.name === active);
+    const schoolClass = activeSpell ? `school-dot-${activeSpell.school.toLowerCase()}` : '';
     banner.innerHTML = `
-        <span>🔵 Concentrating: <strong>${active}</strong></span>
+        <span><span class="concentration-dot ${schoolClass}"></span>Concentrating: <strong>${active}</strong></span>
         <button class="btn btn-small btn-red" onclick="breakConcentration()" style="margin-top:0;">✕ Break</button>
     `;
 }
 
 function applyConcentration(spell){
-    if(!spell.concentration) return;
+    if(!spell.concentration) return true;
     const active = getActiveConcentration();
-    if(active && active !== spell.name){
+    if(active){
         if(!confirm(`You are already concentrating on "${active}". Casting "${spell.name}" will end that concentration. Continue?`)){
             return false;
         }
@@ -214,7 +230,10 @@ function confirmCast(spellId, slotLevel){
     if(spell.concentration && applyConcentration(spell) === false) return;
 
     const slots = character.spellSlots[slotLevel] || [];
-    const idx = slots.findIndex(s => s === true);
+    let idx = -1;
+    for(let i = slots.length - 1; i >= 0; i--){
+        if(slots[i] === true){ idx = i; break; }
+    }
     if(idx === -1) return;
 
     character.spellSlots[slotLevel][idx] = false;
@@ -239,6 +258,7 @@ function renderSpellCards(mode='all'){
     const limitInfo = getPreparationLimit(character);
     const preparedLeveledCount = getLeveledPreparedSpells(prepared).length;
     const preparationFull = limitInfo && preparedLeveledCount >= limitInfo.limit;
+    const maxAvailableLevel = getMaxAvailableSpellLevel(character);
 
     renderPreparationLimitBanner();
 
@@ -283,9 +303,13 @@ function renderSpellCards(mode='all'){
         let actions = '';
 
         if(mode === 'all'){
+            const spellLevel = getSpellLevelNum(spell.level);
+            const levelTooHigh = spellLevel > maxAvailableLevel;
             actions = isKnown
                 ? '<span style="color:#9fd19f;font-size:13px;">✔ Already in your spellbook</span>'
-                : `<button class="btn btn-small btn-green" onclick="addToBook('${spell.id}')">Add to Book</button>`;
+                : levelTooHigh
+                    ? `<button class="btn btn-small btn-gray" style="opacity:0.5;" title="No spell slots of this level yet" onclick="addToBook('${spell.id}')">Add to Book</button>`
+                    : `<button class="btn btn-small btn-green" onclick="addToBook('${spell.id}')">Add to Book</button>`;
         } else if(mode === 'known'){
             const countsAgainstLimit = getSpellLevelNum(spell.level) > 0;
             const canPrepare = !limitInfo || !countsAgainstLimit || !preparationFull;
@@ -346,8 +370,44 @@ function renderSpellCards(mode='all'){
         const detailsOpen = manuallySetDetailIds.has(spell.id) ? manuallySetDetailIds.get(spell.id) : detailsDefaultShown;
         const descOpen = openDescriptionIds.has(spell.id);
 
+        const watermarkLevel = getSpellLevelNum(spell.level);
+
         return `
             <div class="spell-card" data-school="${spell.school}" ${mode === 'prepared' && pinnedList.includes(spell.id) ? 'style="border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;"' : ''}>
+                <div class="spell-level-watermark">
+                    <svg viewBox="0 0 100 100" class="watermark-pentagram">
+                        <circle class="wm-ring" cx="50" cy="50" r="46"/>
+                        <circle class="wm-ring" cx="50" cy="50" r="37.5"/>
+                        <line class="wm-rune" x1="42.93" y1="11.14" x2="57.79" y2="7.20"/>
+                        <line class="wm-rune" x1="66.17" y1="13.96" x2="52.68" y2="6.58"/>
+                        <line class="wm-rune" x1="61.80" y1="12.30" x2="76.78" y2="15.72"/>
+                        <line class="wm-rune" x1="81.06" y1="25.60" x2="72.55" y2="12.80"/>
+                        <line class="wm-rune" x1="77.97" y1="22.10" x2="89.65" y2="32.10"/>
+                        <line class="wm-rune" x1="88.84" y1="42.83" x2="87.25" y2="27.54"/>
+                        <line class="wm-rune" x1="87.73" y1="38.30" x2="93.42" y2="52.57"/>
+                        <line class="wm-rune" x1="87.73" y1="61.70" x2="93.42" y2="47.43"/>
+                        <line class="wm-rune" x1="88.84" y1="57.17" x2="87.25" y2="72.46"/>
+                        <line class="wm-rune" x1="77.97" y1="77.90" x2="89.65" y2="67.90"/>
+                        <line class="wm-rune" x1="81.06" y1="74.40" x2="72.55" y2="87.20"/>
+                        <line class="wm-rune" x1="61.80" y1="87.70" x2="76.78" y2="84.28"/>
+                        <line class="wm-rune" x1="66.17" y1="86.04" x2="52.68" y2="93.42"/>
+                        <line class="wm-rune" x1="42.93" y1="88.86" x2="57.79" y2="92.80"/>
+                        <line class="wm-rune" x1="47.57" y1="89.42" x2="32.20" y2="89.69"/>
+                        <line class="wm-rune" x1="25.68" y1="81.12" x2="37.01" y2="91.51"/>
+                        <line class="wm-rune" x1="29.52" y1="83.78" x2="15.79" y2="76.87"/>
+                        <line class="wm-rune" x1="14.00" y1="66.26" x2="19.20" y2="80.72"/>
+                        <line class="wm-rune" x1="16.17" y1="70.39" x2="7.22" y2="57.89"/>
+                        <line class="wm-rune" x1="10.57" y1="47.66" x2="8.45" y2="62.89"/>
+                        <line class="wm-rune" x1="10.57" y1="52.34" x2="8.45" y2="37.11"/>
+                        <line class="wm-rune" x1="16.17" y1="29.61" x2="7.22" y2="42.11"/>
+                        <line class="wm-rune" x1="14.00" y1="33.74" x2="19.20" y2="19.28"/>
+                        <line class="wm-rune" x1="29.52" y1="16.22" x2="15.79" y2="23.13"/>
+                        <line class="wm-rune" x1="25.68" y1="18.88" x2="37.01" y2="8.49"/>
+                        <line class="wm-rune" x1="47.57" y1="10.58" x2="32.20" y2="10.31"/>
+                        <polyline class="wm-star" points="50,15 70.6,78.3 16.7,39.2 83.3,39.2 29.4,78.3 50,15"/>
+                    </svg>
+                    <span class="watermark-number">${watermarkLevel}</span>
+                </div>
                 <div class="spell-card-top">
                     <div class="spell-name-toggle" onclick="toggleSpellDetails(this, '${spell.id}')">
                         <div class="spell-name">
@@ -403,8 +463,20 @@ function toggleSpellDetails(el, spellId){
     const details = card.querySelector('.spell-details');
     if(!details) return;
     details.classList.toggle('hidden');
+    const nowOpen = !details.classList.contains('hidden');
     if(spellId){
-        manuallySetDetailIds.set(spellId, !details.classList.contains('hidden'));
+        manuallySetDetailIds.set(spellId, nowOpen);
+    }
+
+    // Details can never be collapsed while description stays open
+    if(!nowOpen){
+        const desc = card.querySelector('.spell-desc');
+        const descToggle = card.querySelector('.spell-desc-toggle');
+        if(desc && !desc.classList.contains('hidden')){
+            desc.classList.add('hidden');
+            if(descToggle) descToggle.textContent = '▶ Description';
+            if(spellId) openDescriptionIds.delete(spellId);
+        }
     }
 }
 
@@ -457,6 +529,15 @@ function levelUpCharacter(){
     character.spellSlots = newSlots;
 
     saveCharacters(characters);
+
+    // Reset the level filter to cover the class and every spell level now available
+    const newMaxSpellLevel = getMaxAvailableSpellLevel(character);
+    const resetLevels = [];
+    for(let lvl = 0; lvl <= newMaxSpellLevel; lvl++) resetLevels.push(lvl);
+    activeFilters = { levels: resetLevels, schools: [], classes: [character.class], sources: [], castingTimes: [], ritual: false, concentration: false };
+    document.getElementById('filterClearBtn').style.display = 'block';
+    renderFilterChips();
+
     updateSpellbookTitle(character);
     renderSpellSlotTable(character);
     renderPreparationLimitBanner();
@@ -475,8 +556,11 @@ function openSpellbook(){
         saveCharacters(characters);
     }
 
-    // Set default filter based on character's class
-    activeFilters = { levels: [], schools: [], classes: [character.class], sources: [], castingTimes: [], ritual: false, concentration: false };
+    // Set default filter based on character's class and available spell levels
+    const maxLevel = getMaxAvailableSpellLevel(character);
+    const defaultLevels = [];
+    for(let i = 0; i <= maxLevel; i++) defaultLevels.push(i);
+    activeFilters = { levels: defaultLevels, schools: [], classes: [character.class], sources: [], castingTimes: [], ritual: false, concentration: false };
     document.getElementById('filterClearBtn').style.display = 'block';
 
     document.getElementById("characterPage").classList.add("hidden");

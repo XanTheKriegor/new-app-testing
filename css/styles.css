@@ -155,32 +155,18 @@
         .main-page-wrap{
             position: relative;
         }
-        .refresh-icon-btn{
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 38px;
-            height: 38px;
-            background: var(--bg3);
-            border: 1px solid #3a6ea5;
-            border-radius: 6px;
-            color: #5b9bd5;
-            font-size: 17px;
-            cursor: pointer;
+        .character-info-grid{
             display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.15s, transform 0.15s;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-        .refresh-icon-btn:hover{
-            background: var(--bg4);
+        .character-info-col{
+            flex: 1;
+            min-width: 140px;
         }
-        .refresh-icon-btn:active{
-            transform: rotate(180deg);
-        }
-        .refresh-icon-btn:disabled{
-            opacity: 0.5;
-            cursor: default;
+        .character-info-col p{
+            margin: 4px 0;
         }
 
         /* CARDS */
@@ -268,6 +254,11 @@
             border-color: var(--gold-dim);
         }
         select option{ background: var(--bg3); }
+
+        .required-field.invalid{
+            border-color: #c0392b;
+            box-shadow: 0 0 0 1px rgba(192,57,43,0.5);
+        }
 
         .hidden{ display:none; }
 
@@ -509,6 +500,56 @@
             overflow: hidden;
             transition: border-color 0.15s;
         }
+        .spell-level-watermark{
+            position: absolute;
+            top: 50%;
+            right: 16px;
+            transform: translateY(-50%);
+            width: 110px;
+            height: 110px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .watermark-pentagram{
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            fill: none;
+            stroke: var(--gold-dim);
+            stroke-width: 1.6;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
+        .watermark-pentagram .wm-ring,
+        .watermark-pentagram .wm-rune,
+        .watermark-pentagram .wm-star{
+            opacity: 0.55;
+        }
+        .watermark-pentagram .wm-star{
+            stroke-width: 2.2;
+        }
+        .watermark-pentagram .wm-ring{
+            stroke-width: 1.4;
+        }
+        .watermark-pentagram .wm-rune{
+            stroke-width: 1.1;
+        }
+        .watermark-number{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Cinzel', serif;
+            font-size: 46px;
+            font-weight: 700;
+            color: var(--gold);
+            opacity: 0.9;
+        }
+        .spell-card-top, .spell-details, .spell-desc-toggle, .spell-desc, .spell-action-bottom{
+            position: relative;
+            z-index: 1;
+        }
         .spell-card:hover{ border-color: var(--border-gold); }
         .spell-card::before{
             content: '';
@@ -548,8 +589,9 @@
             flex-wrap: wrap;
         }
         .spell-level-school{
-            font-size: 12px;
-            color: var(--text-dim);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gold-dim);
             margin-top: 2px;
         }
         .edition-toggle{
@@ -582,6 +624,7 @@
             color: var(--text-dim);
             margin-top: 8px;
             padding-left: 8px;
+            padding-right: 120px;
             line-height: 1.5;
         }
         .source-tooltip{
@@ -736,6 +779,23 @@
             padding: 3px 8px;
             font-size: 11px;
         }
+        .concentration-dot{
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background: var(--text-dim);
+            vertical-align: middle;
+        }
+        .school-dot-abjuration    { background: var(--school-abjuration); }
+        .school-dot-conjuration   { background: var(--school-conjuration); }
+        .school-dot-divination    { background: var(--school-divination); }
+        .school-dot-enchantment   { background: var(--school-enchantment); }
+        .school-dot-evocation     { background: var(--school-evocation); }
+        .school-dot-illusion      { background: var(--school-illusion); }
+        .school-dot-necromancy   { background: var(--school-necromancy); }
+        .school-dot-transmutation { background: var(--school-transmutation); }
 
         /* PREPARATION LIMIT */
         .preparation-limit-banner{

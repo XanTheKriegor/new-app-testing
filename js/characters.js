@@ -77,21 +77,33 @@
         document.getElementById("characterPage").classList.remove("hidden");
 
         const characterInfo = document.getElementById("characterInfo");
-        const infoElements = [
-            createTextElement('h3', character.name),
+
+        const leftCol = document.createElement('div');
+        leftCol.className = 'character-info-col';
+        leftCol.append(
             createTextElement('p', 'Class: ' + character.class),
             createTextElement('p', 'Level: ' + character.level),
-            createTextElement('p', 'Race: ' + character.race),
+            createTextElement('p', 'Race: ' + character.race)
+        );
+
+        const rightCol = document.createElement('div');
+        rightCol.className = 'character-info-col';
+        rightCol.append(
             createTextElement('p', 'Spellcasting modifier: ' + (character.spellcastingAbilityMod ?? 0))
-        ];
+        );
         if(character.spellAttackBonus !== undefined && character.spellAttackBonus !== null && character.spellAttackBonus !== ''){
             const bonusVal = character.spellAttackBonus;
-            infoElements.push(createTextElement('p', 'Spell Attack Bonus: ' + (bonusVal >= 0 ? '+' : '') + bonusVal));
+            rightCol.append(createTextElement('p', 'Spell Attack Bonus: ' + (bonusVal >= 0 ? '+' : '') + bonusVal));
         }
         if(character.spellSaveDC !== undefined && character.spellSaveDC !== null && character.spellSaveDC !== ''){
-            infoElements.push(createTextElement('p', 'Spell Save DC: ' + character.spellSaveDC));
+            rightCol.append(createTextElement('p', 'Spell Save DC: ' + character.spellSaveDC));
         }
-        characterInfo.replaceChildren(...infoElements);
+
+        const grid = document.createElement('div');
+        grid.className = 'character-info-grid';
+        grid.append(leftCol, rightCol);
+
+        characterInfo.replaceChildren(createTextElement('h3', character.name), grid);
     }
 
     function backToCharacterSelection(){
@@ -138,14 +150,22 @@ function createCharacter(){
 
         const errorMessage = document.getElementById("errorMessage");
 
-        if(
-            !name ||
-            !characterClass ||
-            !level ||
-            !race ||
-            spellcastingModFieldRaw === ''
-        ){
-            errorMessage.textContent = "Please fill all required fields.";
+        const fieldsToCheck = [
+            { el: document.getElementById("characterName"), valid: !!name },
+            { el: document.getElementById("characterClass"), valid: !!characterClass },
+            { el: document.getElementById("characterLevel"), valid: !!level },
+            { el: document.getElementById("characterRace"), valid: !!race },
+            { el: document.getElementById("characterSpellcastingMod"), valid: spellcastingModFieldRaw !== '' }
+        ];
+
+        let hasInvalid = false;
+        fieldsToCheck.forEach(f => {
+            f.el.classList.toggle('invalid', !f.valid);
+            if(!f.valid) hasInvalid = true;
+        });
+
+        if(hasInvalid){
+            errorMessage.textContent = "Please fill in all required fields (highlighted in red).";
             return;
         }
 
@@ -175,6 +195,52 @@ function createCharacter(){
                 soundSet,
                 spellSlots: oldChar.spellSlots
             };
+
+            // Check whether this change drops spells the character can no longer cast
+            if(levelChanged || classChanged){
+                const oldMaxLevel = getMaxAvailableSpellLevel(oldChar);
+                const newMaxLevel = getMaxAvailableSpellLevel(updatedChar);
+
+                if(newMaxLevel < oldMaxLevel){
+                    const previousCharacterId = currentCharacterId;
+                    currentCharacterId = editingCharacterId;
+
+                    const known = getKnownSpells();
+                    const lostSpellIds = known.filter(spellId => {
+                        const spell = SPELL_DATABASE.find(s => s.id === spellId);
+                        return spell && getSpellLevelNum(spell.level) > newMaxLevel;
+                    });
+
+                    if(lostSpellIds.length > 0){
+                        const lostNames = lostSpellIds
+                            .map(id => SPELL_DATABASE.find(s => s.id === id))
+                            .filter(Boolean)
+                            .map(s => s.name);
+
+                        const confirmMsg = `Lowering this character's level/class will remove ${lostSpellIds.length} spell${lostSpellIds.length === 1 ? '' : 's'} above your new maximum spell level (${newMaxLevel === 0 ? 'cantrips only' : 'level ' + newMaxLevel}):\n\n${lostNames.join(', ')}\n\nContinue?`;
+
+                        if(!confirm(confirmMsg)){
+                            currentCharacterId = previousCharacterId;
+                            return;
+                        }
+
+                        lostSpellIds.forEach(spellId => removeFromBook(spellId));
+
+                        const pinned = getPinnedSpells().filter(id => !lostSpellIds.includes(id));
+                        savePinnedSpells(pinned);
+
+                        const activeConcentrationName = getActiveConcentration();
+                        if(activeConcentrationName){
+                            const lostActive = lostSpellIds
+                                .map(id => SPELL_DATABASE.find(s => s.id === id))
+                                .find(s => s && s.name === activeConcentrationName);
+                            if(lostActive) setActiveConcentration(null);
+                        }
+                    }
+
+                    currentCharacterId = previousCharacterId;
+                }
+            }
 
             // Recalculate slots if level or class changed
             if(levelChanged || classChanged){
@@ -294,5 +360,17 @@ function createCharacter(){
         document.querySelector('#createCharacterPage h2').textContent = "Create Character";
         document.querySelector('#createCharacterPage .btn-green').textContent = "Create Character";
 
+        document.querySelectorAll('.required-field').forEach(el => el.classList.remove('invalid'));
+
     }
+
+    document.querySelectorAll('.required-field').forEach(el => {
+        const clearInvalid = () => {
+            if(el.value !== ''){
+                el.classList.remove('invalid');
+            }
+        };
+        el.addEventListener('input', clearInvalid);
+        el.addEventListener('change', clearInvalid);
+    });
 

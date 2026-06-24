@@ -17,8 +17,6 @@
     <!-- MAIN PAGE -->
     <div id="mainPage" class="main-page-wrap">
 
-        <button class="refresh-icon-btn" onclick="hardRefreshApp()" title="Refresh app (get latest version)">🔄</button>
-
         <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
             <button id="themeLightBtn" class="btn btn-gray btn-small" onclick="setTheme('light')" style="border-radius:20px;">☀ Light</button>
             <button id="themeDarkBtn" class="btn btn-gray btn-small" onclick="setTheme('dark')" style="border-radius:20px;">🌙 Dark</button>
@@ -61,10 +59,10 @@
             <div class="form-section-heading">Required</div>
 
             <label>Name</label>
-            <input type="text" id="characterName">
+            <input type="text" id="characterName" class="required-field">
 
             <label>Class</label>
-            <select id="characterClass">
+            <select id="characterClass" class="required-field">
                 <option value="">Select Class</option>
                 <option>Barbarian</option>
                 <option>Bard</option>
@@ -82,12 +80,12 @@
             </select>
 
             <label>Level</label>
-            <select id="characterLevel">
+            <select id="characterLevel" class="required-field">
                 <option value="">Select Level</option>
             </select>
 
             <label>Race</label>
-            <select id="characterRace">
+            <select id="characterRace" class="required-field">
                 <option value="">Select Race</option>
                 <option>Human</option>
                 <option>Elf</option>
@@ -116,7 +114,7 @@
             </select>
 
             <label>Spellcasting Ability Modifier</label>
-            <input type="number" id="characterSpellcastingMod" min="-5" max="10" value="0" oninput="this.value = this.value === '' ? '' : Math.min(10, Math.max(-5, parseInt(this.value) || 0))">
+            <input type="number" id="characterSpellcastingMod" class="required-field" min="-5" max="10" value="0" oninput="this.value = this.value === '' ? '' : Math.min(10, Math.max(-5, parseInt(this.value) || 0))">
 
             <div class="form-section-heading optional">Optional</div>
 

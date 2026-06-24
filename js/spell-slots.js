@@ -55,6 +55,15 @@ function initSpellSlots(character){
     return slots;
 }
 
+function getMaxAvailableSpellLevel(character){
+    const slots = initSpellSlots(character);
+    let max = 0;
+    for(let i = 1; i <= 9; i++){
+        if((slots[i] || []).length > 0) max = i;
+    }
+    return max;
+}
+
 function renderSpellSlotTable(character){
     if(!character.spellSlots){
         character.spellSlots = initSpellSlots(character);
