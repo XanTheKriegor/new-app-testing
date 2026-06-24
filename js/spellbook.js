@@ -422,6 +422,10 @@ function setSpellEditionAndRerender(spellId, edition){
     renderSpellCards(currentSpellTab);
 }
 
+function updateSpellbookTitle(character){
+    document.getElementById("spellbookTitle").textContent = character.name + " (Lv " + character.level + ")";
+}
+
 function levelUpCharacter(){
     const characters = getCharacters();
     const character = characters.find(c => c.id === currentCharacterId);
@@ -453,7 +457,7 @@ function levelUpCharacter(){
     character.spellSlots = newSlots;
 
     saveCharacters(characters);
-    document.getElementById("spellbookTitle").textContent = character.name + " - Spellbook";
+    updateSpellbookTitle(character);
     renderSpellSlotTable(character);
     renderPreparationLimitBanner();
     renderConcentrationBanner();
@@ -477,7 +481,7 @@ function openSpellbook(){
 
     document.getElementById("characterPage").classList.add("hidden");
     document.getElementById("spellbookPage").classList.remove("hidden");
-    document.getElementById("spellbookTitle").textContent = character.name + " - Spellbook";
+    updateSpellbookTitle(character);
 
     const settingsPanel = document.getElementById('spellbookSettingsPanel');
     const settingsBtn = document.getElementById('spellbookSettingsBtn');
